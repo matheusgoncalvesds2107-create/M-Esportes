@@ -38,6 +38,15 @@ function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+function first(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+  return null;
+}
+
 function todayBR() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
@@ -48,14 +57,15 @@ function todayBR() {
 }
 
 function normalizeStatus(raw) {
-  const value = String(raw || "").toLowerCase();
+  const value = String(raw || "").trim().toLowerCase();
 
   if (
     value.includes("1st_half") ||
     value.includes("first_half") ||
     value === "1h" ||
     value === "live" ||
-    value === "inprogress"
+    value === "inprogress" ||
+    value === "in_progress"
   ) {
     return "1H";
   }
@@ -89,87 +99,119 @@ function normalizeStatus(raw) {
 }
 
 function normalizeGame(game) {
+  const homeId = first(
+    game.teams?.home?.id,
+    game.home?.id,
+    game.home_team?.id,
+    game.home_team_id
+  );
+
+  const awayId = first(
+    game.teams?.away?.id,
+    game.away?.id,
+    game.away_team?.id,
+    game.away_team_id
+  );
+
   return {
     id: String(
-      game.id ||
-      game.fixture?.id ||
-      `${game.home_team_id}-${game.away_team_id}-${game.date || ""}`
+      first(
+        game.id,
+        game.fixture?.id,
+        `${homeId || "h"}-${awayId || "a"}-${game.date || game.start_time || ""}`
+      )
     ),
 
-    league:
-      game.league?.name ||
-      game.competition?.name ||
-      game.championship ||
-      game.league ||
-      "Campeonato",
+    league: first(
+      game.league?.name,
+      game.competition?.name,
+      game.championship,
+      game.league,
+      "Campeonato"
+    ),
 
-    country:
-      game.league?.country ||
-      game.country ||
-      game.region ||
-      "Internacional",
+    country: first(
+      game.league?.country,
+      game.country?.name,
+      game.country,
+      game.region,
+      "Internacional"
+    ),
 
-    home:
-      game.teams?.home?.name ||
-      game.home?.name ||
-      game.home_team?.name ||
-      game.home_team ||
-      "Mandante",
+    home: first(
+      game.teams?.home?.name,
+      game.home?.name,
+      game.home_team?.name,
+      game.home_team,
+      "Mandante"
+    ),
 
-    away:
-      game.teams?.away?.name ||
-      game.away?.name ||
-      game.away_team?.name ||
-      game.away_team ||
-      "Visitante",
+    away: first(
+      game.teams?.away?.name,
+      game.away?.name,
+      game.away_team?.name,
+      game.away_team,
+      "Visitante"
+    ),
 
-    homeLogo:
-      game.teams?.home?.logo ||
-      game.home?.logo ||
-      game.home_team?.logo ||
-      game.home_logo ||
-      null,
+    homeId,
+    awayId,
 
-    awayLogo:
-      game.teams?.away?.logo ||
-      game.away?.logo ||
-      game.away_team?.logo ||
-      game.away_logo ||
-      null,
+    homeLogo: first(
+      game.teams?.home?.logo,
+      game.home?.logo,
+      game.home_team?.logo,
+      game.home_logo,
+      game.team_home_logo,
+      game.logo_home
+    ),
 
-    hs:
-      game.goals?.home ??
-      game.score?.home ??
-      game.home_score ??
-      game.score_home ??
-      null,
+    awayLogo: first(
+      game.teams?.away?.logo,
+      game.away?.logo,
+      game.away_team?.logo,
+      game.away_logo,
+      game.team_away_logo,
+      game.logo_away
+    ),
 
-    as:
-      game.goals?.away ??
-      game.score?.away ??
-      game.away_score ??
-      game.score_away ??
-      null,
+    hs: first(
+      game.goals?.home,
+      game.score?.home,
+      game.home_score,
+      game.score_home
+    ),
 
-    minute:
-      game.minute ??
-      game.elapsed ??
-      game.status?.elapsed ??
-      game.fixture?.status?.elapsed ??
-      null,
+    as: first(
+      game.goals?.away,
+      game.score?.away,
+      game.away_score,
+      game.score_away
+    ),
+
+    minute: first(
+      game.minute,
+      game.elapsed,
+      game.status?.elapsed,
+      game.fixture?.status?.elapsed
+    ),
 
     status: normalizeStatus(
-      game.status?.short ||
-      game.fixture?.status?.short ||
-      game.status ||
-      game.state ||
-      game.match_status
+      first(
+        game.status?.short,
+        game.fixture?.status?.short,
+        game.status,
+        game.state,
+        game.match_status
+      )
     ),
 
-    start:
-      game.time ||
-      game.fixture?.time ||
+    start: first(
+      game.time,
+      game.fixture?.time,
+      game.hour,
       "--:--"
+    )
   };
 }
 
@@ -234,12 +276,12 @@ function teamLogo(url, team) {
         src="${escapeHtml(url)}"
         alt="${escapeHtml(team)}"
         loading="lazy"
+        referrerpolicy="no-referrer"
         onerror="
           this.style.display='none';
           this.nextElementSibling.style.display='grid';
         "
       />
-
       <span
         class="team-logo-fallback"
         style="display:none"
@@ -290,6 +332,7 @@ function matchCard(game) {
         class="favorite-btn ${favorite ? "active" : ""}"
         data-favorite="${escapeHtml(game.id)}"
         type="button"
+        aria-label="Favoritar jogo"
       >
         ★
       </button>
@@ -341,7 +384,6 @@ function renderGames(container, games, emptyTitle, emptyText) {
               <div class="league-country">
                 ${escapeHtml(group.country)}
               </div>
-
               <div class="league-title">
                 ${escapeHtml(group.league)}
               </div>
@@ -395,7 +437,7 @@ function renderFavorites() {
     els.favoriteGames,
     games,
     "Nenhum favorito ainda",
-    "Toque na estrela de uma partida para acompanhar."
+    "Toque na estrela para ativar notificações somente desse jogo."
   );
 }
 
@@ -420,10 +462,7 @@ function renderLeagues() {
                 <strong>${escapeHtml(league.name)}</strong>
                 <small>${escapeHtml(league.country)}</small>
               </div>
-
-              <span class="count">
-                ${league.games}
-              </span>
+              <span class="count">${league.games}</span>
             </div>
           `
         )
@@ -431,9 +470,7 @@ function renderLeagues() {
     : `
       <div class="empty-state">
         <strong>Nenhuma liga encontrada</strong>
-        <span>
-          As competições aparecem aqui quando houver jogos.
-        </span>
+        <span>As competições aparecem aqui quando houver jogos.</span>
       </div>
     `;
 }
@@ -441,9 +478,9 @@ function renderLeagues() {
 function renderNews() {
   els.newsList.innerHTML = `
     <div class="empty-state">
-      <strong>Notícias</strong>
+      <strong>Notícias do M Esportes</strong>
       <span>
-        A próxima etapa será ligar as notícias e o pré-jogo do M Esportes.
+        Próximo passo: puxar notícias e pré-jogo do projeto RPF PLACAR.
       </span>
     </div>
   `;
@@ -512,7 +549,6 @@ async function refreshAll(showLoading = true) {
     }
 
     await loadGames();
-
     renderAll();
     checkFavoriteNotifications();
   } catch (error) {
@@ -574,9 +610,7 @@ function notify(title, body) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
-  new Notification(title, {
-    body
-  });
+  new Notification(title, { body });
 }
 
 function checkFavoriteNotifications() {
@@ -587,35 +621,24 @@ function checkFavoriteNotifications() {
 
     const fixture = `${game.home} x ${game.away}`;
 
-    if (
-      game.status === "1H" &&
-      !alreadyNotified(game, "start")
-    ) {
-      notify("⚽ Partida iniciada", fixture);
+    if (game.status === "1H" && !alreadyNotified(game, "start")) {
+      notify("⚽ Jogo iniciado", fixture);
       markNotified(game, "start");
     }
 
-    if (
-      game.status === "HT" &&
-      !alreadyNotified(game, "halftime")
-    ) {
+    if (game.status === "HT" && !alreadyNotified(game, "halftime")) {
       notify(
         "⏸️ Intervalo",
         `${fixture} — ${scoreValue(game.hs)} x ${scoreValue(game.as)}`
       );
-
       markNotified(game, "halftime");
     }
 
-    if (
-      game.status === "FT" &&
-      !alreadyNotified(game, "finish")
-    ) {
+    if (game.status === "FT" && !alreadyNotified(game, "finish")) {
       notify(
         "🏁 Fim de jogo",
         `${fixture} — ${scoreValue(game.hs)} x ${scoreValue(game.as)}`
       );
-
       markNotified(game, "finish");
     }
   }
@@ -652,10 +675,7 @@ function setupNavigation() {
         .forEach((item) => item.classList.remove("active"));
 
       button.classList.add("active");
-
-      document
-        .getElementById(`page-${page}`)
-        ?.classList.add("active");
+      document.getElementById(`page-${page}`)?.classList.add("active");
     });
   }
 }
