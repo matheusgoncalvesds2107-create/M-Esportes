@@ -1,6 +1,4 @@
-const API_BASE =
-  window.M_ESPORTES_API ||
-  "https://SEU-BACKEND-AQUI.onrender.com";
+const API_BASE = "https://radioplacar-api.onrender.com";
 
 const state = {
   games: [],
@@ -38,6 +36,166 @@ function escapeHtml(value = "") {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function todayBR() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+
+  return parts;
+}
+
+function normalizeStatus(raw) {
+  const value = String(raw || "").toLowerCase();
+
+  if (
+    value.includes("1st_half") ||
+    value.includes("first_half") ||
+    value === "1h" ||
+    value === "live" ||
+    value === "inprogress"
+  ) {
+    return "1H";
+  }
+
+  if (
+    value.includes("half") ||
+    value.includes("interval") ||
+    value === "ht"
+  ) {
+    return "HT";
+  }
+
+  if (
+    value.includes("2nd_half") ||
+    value.includes("second_half") ||
+    value === "2h"
+  ) {
+    return "2H";
+  }
+
+  if (
+    value.includes("finish") ||
+    value.includes("ended") ||
+    value.includes("encerr") ||
+    value === "ft"
+  ) {
+    return "FT";
+  }
+
+  return "NS";
+}
+
+function normalizeGame(game) {
+  return {
+    id: String(
+      game.id ||
+      game.fixture?.id ||
+      `${game.home_team_id}-${game.away_team_id}-${game.date || ""}`
+    ),
+
+    league:
+      game.league?.name ||
+      game.competition?.name ||
+      game.championship ||
+      game.league ||
+      "Campeonato",
+
+    country:
+      game.league?.country ||
+      game.country ||
+      game.region ||
+      "Internacional",
+
+    home:
+      game.teams?.home?.name ||
+      game.home?.name ||
+      game.home_team?.name ||
+      game.home_team ||
+      "Mandante",
+
+    away:
+      game.teams?.away?.name ||
+      game.away?.name ||
+      game.away_team?.name ||
+      game.away_team ||
+      "Visitante",
+
+    homeLogo:
+      game.teams?.home?.logo ||
+      game.home?.logo ||
+      game.home_team?.logo ||
+      game.home_logo ||
+      null,
+
+    awayLogo:
+      game.teams?.away?.logo ||
+      game.away?.logo ||
+      game.away_team?.logo ||
+      game.away_logo ||
+      null,
+
+    hs:
+      game.goals?.home ??
+      game.score?.home ??
+      game.home_score ??
+      game.score_home ??
+      null,
+
+    as:
+      game.goals?.away ??
+      game.score?.away ??
+      game.away_score ??
+      game.score_away ??
+      null,
+
+    minute:
+      game.minute ??
+      game.elapsed ??
+      game.status?.elapsed ??
+      game.fixture?.status?.elapsed ??
+      null,
+
+    status: normalizeStatus(
+      game.status?.short ||
+      game.fixture?.status?.short ||
+      game.status ||
+      game.state ||
+      game.match_status
+    ),
+
+    start:
+      game.time ||
+      game.fixture?.time ||
+      "--:--"
+  };
+}
+
+function extractArray(data) {
+  if (Array.isArray(data)) return data;
+
+  for (const key of [
+    "response",
+    "matches",
+    "games",
+    "fixtures",
+    "results",
+    "data"
+  ]) {
+    if (Array.isArray(data?.[key])) {
+      return data[key];
+    }
+  }
+
+  if (Array.isArray(data?.response?.data)) {
+    return data.response.data;
+  }
+
+  return [];
 }
 
 function isLive(game) {
@@ -122,7 +280,6 @@ function matchCard(game) {
 
         <div class="team">
           ${teamLogo(game.homeLogo, game.home)}
-
           <span class="team-name">
             ${escapeHtml(game.home)}
           </span>
@@ -130,7 +287,6 @@ function matchCard(game) {
 
         <div class="team">
           ${teamLogo(game.awayLogo, game.away)}
-
           <span class="team-name">
             ${escapeHtml(game.away)}
           </span>
@@ -147,7 +303,6 @@ function matchCard(game) {
         class="favorite-btn ${favorite ? "active" : ""}"
         data-favorite="${escapeHtml(game.id)}"
         type="button"
-        aria-label="Favoritar"
       >
         ★
       </button>
@@ -264,100 +419,58 @@ function renderFavorites() {
 }
 
 function renderLeagues() {
+  const groups = groupGames(state.games);
+
+  state.leagues = groups.map((group) => ({
+    name: group.league,
+    country: group.country,
+    games: group.games.length
+  }));
+
   els.leaguesCount.textContent =
     `${state.leagues.length} liga${state.leagues.length === 1 ? "" : "s"}`;
 
-  if (!state.leagues.length) {
-    els.leaguesList.innerHTML = `
+  els.leaguesList.innerHTML = state.leagues.length
+    ? state.leagues
+        .map(
+          (league) => `
+            <div class="league-card">
+              <div>
+                <strong>
+                  ${escapeHtml(league.name)}
+                </strong>
+
+                <small>
+                  ${escapeHtml(league.country)}
+                </small>
+              </div>
+
+              <span class="count">
+                ${league.games}
+              </span>
+            </div>
+          `
+        )
+        .join("")
+    : `
       <div class="empty-state">
         <strong>Nenhuma liga encontrada</strong>
         <span>
-          As competições aparecerão aqui quando houver jogos.
+          As competições aparecem aqui quando houver jogos.
         </span>
       </div>
     `;
-
-    return;
-  }
-
-  els.leaguesList.innerHTML = state.leagues
-    .map(
-      (league) => `
-        <div class="league-card">
-          <div>
-            <strong>
-              ${escapeHtml(league.name || "Campeonato")}
-            </strong>
-
-            <small>
-              ${escapeHtml(league.country || "Internacional")}
-            </small>
-          </div>
-
-          <span class="count">
-            ${Number(league.games || 0)}
-          </span>
-        </div>
-      `
-    )
-    .join("");
 }
 
 function renderNews() {
-  if (!state.news.length) {
-    els.newsList.innerHTML = `
-      <div class="empty-state">
-        <strong>Notícias ainda não configuradas</strong>
-        <span>
-          Os resultados já funcionam. Depois vamos ligar as notícias.
-        </span>
-      </div>
-    `;
-
-    return;
-  }
-
-  els.newsList.innerHTML = state.news
-    .map(
-      (item) => `
-        <article class="news-card">
-
-          <div class="news-tag">
-            ${escapeHtml(item.tag || "M ESPORTES")}
-          </div>
-
-          <h3>
-            ${escapeHtml(item.title || "")}
-          </h3>
-
-          ${
-            item.summary
-              ? `
-                <p>
-                  ${escapeHtml(item.summary)}
-                </p>
-              `
-              : ""
-          }
-
-          ${
-            item.link
-              ? `
-                <a
-                  href="${escapeHtml(item.link)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Ler notícia
-                </a>
-              `
-              : ""
-          }
-
-        </article>
-      `
-    )
-    .join("");
+  els.newsList.innerHTML = `
+    <div class="empty-state">
+      <strong>Notícias</strong>
+      <span>
+        A próxima etapa será ligar as notícias e o pré-jogo do M Esportes.
+      </span>
+    </div>
+  `;
 }
 
 function renderAll() {
@@ -369,43 +482,225 @@ function renderAll() {
 }
 
 async function request(path) {
-  const response = await fetch(`${API_BASE}${path}`);
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      Accept: "application/json"
+    }
+  });
 
   if (!response.ok) {
-    throw new Error(
-      `Erro ${response.status} ao acessar ${path}`
-    );
+    throw new Error(`Erro ${response.status}`);
   }
 
   return response.json();
 }
 
 async function loadGames() {
-  const data = await request("/api/games/today");
+  const date = todayBR();
 
-  state.games = Array.isArray(data.response)
-    ? data.response
-    : [];
-}
+  const paths = [
+    `/api/matches?date=${encodeURIComponent(date)}`,
+    `/api/rpf/candidatos?date=${encodeURIComponent(date)}`
+  ];
 
-async function loadLive() {
-  try {
-    const data = await request("/api/live");
+  let lastError = null;
 
-    state.live = Array.isArray(data.response)
-      ? data.response
-      : [];
-  } catch {
-    state.live = state.games.filter(isLive);
+  for (const path of paths) {
+    try {
+      const data = await request(path);
+      const arr = extractArray(data);
+
+      if (arr.length) {
+        state.games = arr.map(normalizeGame);
+        state.live = state.games.filter(isLive);
+        return;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  state.games = [];
+  state.live = [];
+
+  if (lastError) {
+    throw lastError;
   }
 }
 
-async function loadLeagues() {
+async function refreshAll(showLoading = true) {
   try {
-    const data = await request("/api/leagues");
+    if (showLoading) {
+      els.refreshBtn.textContent = "…";
+      els.refreshBtn.disabled = true;
+    }
 
-    state.leagues = Array.isArray(data.response)
-      ? data.response
-      : [];
-  } catch {
-    const groups =
+    await loadGames();
+
+    renderAll();
+    checkFavoriteNotifications();
+  } catch (error) {
+    console.error(error);
+
+    els.homeGames.innerHTML = `
+      <div class="empty-state">
+        <strong>Não foi possível carregar os jogos</strong>
+        <span>
+          ${escapeHtml(error.message)}
+        </span>
+      </div>
+    `;
+  } finally {
+    els.refreshBtn.textContent = "↻";
+    els.refreshBtn.disabled = false;
+  }
+}
+
+function saveFavorites() {
+  localStorage.setItem(
+    "m-esportes-favorites",
+    JSON.stringify([...state.favorites])
+  );
+}
+
+function toggleFavorite(id) {
+  id = String(id);
+
+  if (state.favorites.has(id)) {
+    state.favorites.delete(id);
+  } else {
+    state.favorites.add(id);
+  }
+
+  saveFavorites();
+  renderAll();
+}
+
+function saveNotified() {
+  localStorage.setItem(
+    "m-esportes-notified",
+    JSON.stringify(state.notified)
+  );
+}
+
+function notificationKey(game, event) {
+  return `${game.id}:${event}`;
+}
+
+function alreadyNotified(game, event) {
+  return Boolean(state.notified[notificationKey(game, event)]);
+}
+
+function markNotified(game, event) {
+  state.notified[notificationKey(game, event)] = Date.now();
+  saveNotified();
+}
+
+function notify(title, body) {
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission !== "granted") return;
+
+  new Notification(title, {
+    body
+  });
+}
+
+function checkFavoriteNotifications() {
+  for (const game of state.games) {
+    if (!state.favorites.has(String(game.id))) {
+      continue;
+    }
+
+    const fixture = `${game.home} x ${game.away}`;
+
+    if (
+      game.status === "1H" &&
+      !alreadyNotified(game, "start")
+    ) {
+      notify("⚽ Partida iniciada", fixture);
+      markNotified(game, "start");
+    }
+
+    if (
+      game.status === "HT" &&
+      !alreadyNotified(game, "halftime")
+    ) {
+      notify(
+        "⏸️ Intervalo",
+        `${fixture} — ${scoreValue(game.hs)} x ${scoreValue(game.as)}`
+      );
+
+      markNotified(game, "halftime");
+    }
+
+    if (
+      game.status === "FT" &&
+      !alreadyNotified(game, "finish")
+    ) {
+      notify(
+        "🏁 Fim de jogo",
+        `${fixture} — ${scoreValue(game.hs)} x ${scoreValue(game.as)}`
+      );
+
+      markNotified(game, "finish");
+    }
+  }
+}
+
+async function requestNotifications() {
+  if (!("Notification" in window)) {
+    alert("Este navegador não oferece notificações dessa forma.");
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+
+  if (permission === "granted") {
+    els.notificationBtn.textContent = "Notificações ativadas";
+  } else {
+    els.notificationBtn.textContent = "Permissão não concedida";
+  }
+}
+
+function setupNavigation() {
+  const buttons = document.querySelectorAll(".nav-item");
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      const page = button.dataset.page;
+
+      document
+        .querySelectorAll(".nav-item")
+        .forEach((item) => item.classList.remove("active"));
+
+      document
+        .querySelectorAll(".page")
+        .forEach((item) => item.classList.remove("active"));
+
+      button.classList.add("active");
+
+      document
+        .getElementById(`page-${page}`)
+        ?.classList.add("active");
+    });
+  }
+}
+
+document.addEventListener("click", (event) => {
+  const favoriteButton = event.target.closest("[data-favorite]");
+
+  if (favoriteButton) {
+    toggleFavorite(favoriteButton.dataset.favorite);
+  }
+});
+
+els.refreshBtn.addEventListener("click", () => refreshAll(true));
+els.notificationBtn.addEventListener("click", requestNotifications);
+
+setupNavigation();
+refreshAll(true);
+
+setInterval(() => {
+  refreshAll(false);
+}, 20000);
