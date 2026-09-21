@@ -122,7 +122,8 @@ function normalizeStatus(raw) {
     value === "first_half" ||
     value === "live" ||
     value === "inprogress" ||
-    value === "in_progress"
+    value === "in_progress" ||
+    value === "firsthalf"
   ) {
     return "1H";
   }
@@ -131,6 +132,7 @@ function normalizeStatus(raw) {
     value === "ht" ||
     value === "halftime" ||
     value === "half_time" ||
+    value === "half-time" ||
     value.includes("interval")
   ) {
     return "HT";
@@ -139,7 +141,8 @@ function normalizeStatus(raw) {
   if (
     value === "2h" ||
     value === "2nd_half" ||
-    value === "second_half"
+    value === "second_half" ||
+    value === "secondhalf"
   ) {
     return "2H";
   }
@@ -149,6 +152,7 @@ function normalizeStatus(raw) {
     value === "finished" ||
     value === "ended" ||
     value === "final" ||
+    value === "fulltime" ||
     value.includes("encerr")
   ) {
     return "FT";
@@ -194,11 +198,6 @@ function normalizeGame(game) {
     game.match_status
   );
 
-  /*
-    A API do RPF usa event_date.
-    Exemplo:
-    2026-09-21T22:30:00+00:00
-  */
   const dateRaw = first(
     game.event_date,
     game.fixture?.date,
@@ -215,10 +214,6 @@ function normalizeGame(game) {
     null
   );
 
-  /*
-    Se não vier um horário separado,
-    converte o event_date para Brasília.
-  */
   if (!start && dateRaw) {
     start = formatMatchTime(dateRaw);
   }
@@ -367,14 +362,34 @@ function extractArray(data) {
 
 
 /* =========================================================
-   PARTIDA
+   PARTIDAS
 ========================================================= */
 
 function isLive(game) {
   return ["1H", "HT", "2H"].includes(game.status);
 }
 
-function scoreValue(value) {
+
+/*
+  PRÉ-JOGO:
+  null vira 0.
+
+  AO VIVO / ENCERRADO:
+  mantém o placar que vier da API.
+*/
+function scoreValue(value, game = null) {
+  if (
+    game &&
+    game.status === "NS" &&
+    (
+      value === null ||
+      value === undefined ||
+      value === ""
+    )
+  ) {
+    return 0;
+  }
+
   return value === null ||
     value === undefined ||
     value === ""
@@ -403,15 +418,13 @@ function syncGameClock(game) {
     return;
   }
 
-  const minute =
-    Number(game.minute);
+  const minute = Number(game.minute);
 
   if (!Number.isFinite(minute)) {
     return;
   }
 
-  const old =
-    state.clocks[id];
+  const old = state.clocks[id];
 
   if (
     !old ||
@@ -537,7 +550,7 @@ function teamLogo(url, team) {
 
 
 /* =========================================================
-   CARD DE JOGO
+   CARD JOGO
 ========================================================= */
 
 function matchCard(game) {
@@ -555,7 +568,6 @@ function matchCard(game) {
       <div
         class="match-time ${live ? "live" : ""}"
       >
-
         ${
           live
             ? `
@@ -568,7 +580,6 @@ function matchCard(game) {
             `
             : escapeHtml(getGameClock(game))
         }
-
       </div>
 
       <div class="teams">
@@ -604,11 +615,11 @@ function matchCard(game) {
       <div class="score">
 
         <span>
-          ${scoreValue(game.hs)}
+          ${scoreValue(game.hs, game)}
         </span>
 
         <span>
-          ${scoreValue(game.as)}
+          ${scoreValue(game.as, game)}
         </span>
 
       </div>
@@ -627,7 +638,7 @@ function matchCard(game) {
 
 
 /* =========================================================
-   AGRUPAR
+   AGRUPAR POR CAMPEONATO
 ========================================================= */
 
 function groupGames(games) {
@@ -833,9 +844,9 @@ function renderPregame() {
       </div>
 
       <div class="score-big">
-        ${scoreValue(game.hs)}
+        ${scoreValue(game.hs, game)}
         x
-        ${scoreValue(game.as)}
+        ${scoreValue(game.as, game)}
       </div>
     `;
   } else if (halftime) {
@@ -845,9 +856,9 @@ function renderPregame() {
       </div>
 
       <div class="score-big">
-        ${scoreValue(game.hs)}
+        ${scoreValue(game.hs, game)}
         x
-        ${scoreValue(game.as)}
+        ${scoreValue(game.as, game)}
       </div>
     `;
   } else if (finished) {
@@ -857,9 +868,9 @@ function renderPregame() {
       </div>
 
       <div class="score-big">
-        ${scoreValue(game.hs)}
+        ${scoreValue(game.hs, game)}
         x
-        ${scoreValue(game.as)}
+        ${scoreValue(game.as, game)}
       </div>
     `;
   } else {
@@ -870,6 +881,12 @@ function renderPregame() {
 
       <div class="time">
         ${escapeHtml(game.start)}
+      </div>
+
+      <div class="score-big">
+        ${scoreValue(game.hs, game)}
+        x
+        ${scoreValue(game.as, game)}
       </div>
 
       <div class="pregame-country">
@@ -1005,7 +1022,7 @@ function createAutomaticNews() {
       type: "AO VIVO AGORA",
 
       title:
-        `${game.home} ${scoreValue(game.hs)} x ${scoreValue(game.as)} ${game.away}`,
+        `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
 
       summary:
         `${periodText(game)} • ${game.league}.`
@@ -1024,7 +1041,7 @@ function createAutomaticNews() {
       type: "INTERVALO",
 
       title:
-        `${game.home} ${scoreValue(game.hs)} x ${scoreValue(game.as)} ${game.away}`,
+        `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
 
       summary:
         `Fim do primeiro tempo em ${game.league}.`
@@ -1062,7 +1079,7 @@ function createAutomaticNews() {
       type: "FIM DE JOGO",
 
       title:
-        `${game.home} ${scoreValue(game.hs)} x ${scoreValue(game.as)} ${game.away}`,
+        `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
 
       summary:
         `Partida encerrada por ${game.league}.`
@@ -1084,6 +1101,18 @@ function createAutomaticNews() {
     });
   }
 
+  if (!news.length) {
+    news.push({
+      type: "M ESPORTES AGORA",
+
+      title:
+        "Plantão esportivo em atualização",
+
+      summary:
+        "Assim que houver partidas, as informações aparecem aqui automaticamente."
+    });
+  }
+
   state.news =
     news.slice(0, 8);
 }
@@ -1094,6 +1123,10 @@ function createAutomaticNews() {
 ========================================================= */
 
 function renderNews() {
+  if (!els.newsList) {
+    return;
+  }
+
   els.newsList.innerHTML =
     state.news
       .map(
@@ -1120,7 +1153,7 @@ function renderNews() {
 
 
 /* =========================================================
-   OUTROS RENDERS
+   HOME
 ========================================================= */
 
 function renderHome() {
@@ -1139,6 +1172,11 @@ function renderHome() {
   );
 }
 
+
+/* =========================================================
+   AO VIVO
+========================================================= */
+
 function renderLive() {
   els.liveCount.textContent =
     `${state.live.length} partida${
@@ -1154,6 +1192,11 @@ function renderLive() {
     "Quando algum jogo começar ele aparece aqui."
   );
 }
+
+
+/* =========================================================
+   FAVORITOS
+========================================================= */
 
 function renderFavorites() {
   const games =
@@ -1178,6 +1221,11 @@ function renderFavorites() {
   );
 }
 
+
+/* =========================================================
+   LIGAS
+========================================================= */
+
 function renderLeagues() {
   const groups =
     groupGames(state.games);
@@ -1195,6 +1243,16 @@ function renderLeagues() {
         ? ""
         : "s"
     }`;
+
+  if (!state.leagues.length) {
+    els.leaguesList.innerHTML = `
+      <div class="empty-state">
+        Nenhuma liga encontrada.
+      </div>
+    `;
+
+    return;
+  }
 
   els.leaguesList.innerHTML =
     state.leagues
@@ -1224,6 +1282,11 @@ function renderLeagues() {
       .join("");
 }
 
+
+/* =========================================================
+   RENDER GERAL
+========================================================= */
+
 function renderAll() {
   renderPregame();
   renderHome();
@@ -1235,7 +1298,7 @@ function renderAll() {
 
 
 /* =========================================================
-   RELÓGIOS VISÍVEIS
+   ATUALIZAR RELÓGIOS VISÍVEIS
 ========================================================= */
 
 function updateVisibleClocks() {
@@ -1284,6 +1347,11 @@ async function request(path) {
   return response.json();
 }
 
+
+/* =========================================================
+   CARREGAR JOGOS
+========================================================= */
+
 async function loadGames() {
   const date =
     todayBR();
@@ -1327,6 +1395,11 @@ async function loadGames() {
   }
 }
 
+
+/* =========================================================
+   JORNADAS RPF
+========================================================= */
+
 async function loadJourneys() {
   try {
     const data =
@@ -1343,7 +1416,7 @@ async function loadJourneys() {
 
 
 /* =========================================================
-   ATUALIZAR
+   ATUALIZAÇÃO
 ========================================================= */
 
 async function refreshAll(
@@ -1370,6 +1443,22 @@ async function refreshAll(
     checkFavoriteNotifications();
   } catch (error) {
     console.error(error);
+
+    if (els.homeGames) {
+      els.homeGames.innerHTML = `
+        <div class="empty-state">
+
+          <strong>
+            Não foi possível carregar os jogos
+          </strong>
+
+          <span>
+            ${escapeHtml(error.message)}
+          </span>
+
+        </div>
+      `;
+    }
   } finally {
     els.refreshBtn.textContent =
       "↻";
@@ -1396,7 +1485,9 @@ function saveFavorites() {
 function toggleFavorite(id) {
   id = String(id);
 
-  if (state.favorites.has(id)) {
+  if (
+    state.favorites.has(id)
+  ) {
     state.favorites.delete(id);
   } else {
     state.favorites.add(id);
@@ -1467,7 +1558,8 @@ function notify(
   }
 
   if (
-    Notification.permission !== "granted"
+    Notification.permission !==
+    "granted"
   ) {
     return;
   }
@@ -1495,7 +1587,10 @@ function checkFavoriteNotifications() {
 
     if (
       game.status === "1H" &&
-      !alreadyNotified(game, "start")
+      !alreadyNotified(
+        game,
+        "start"
+      )
     ) {
       notify(
         "⚽ JOGO INICIADO",
@@ -1510,11 +1605,14 @@ function checkFavoriteNotifications() {
 
     if (
       game.status === "HT" &&
-      !alreadyNotified(game, "halftime")
+      !alreadyNotified(
+        game,
+        "halftime"
+      )
     ) {
       notify(
         "⏸️ INTERVALO",
-        `${fixture} • ${scoreValue(game.hs)} x ${scoreValue(game.as)}`
+        `${fixture} • ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)}`
       );
 
       markNotified(
@@ -1525,11 +1623,14 @@ function checkFavoriteNotifications() {
 
     if (
       game.status === "FT" &&
-      !alreadyNotified(game, "finish")
+      !alreadyNotified(
+        game,
+        "finish"
+      )
     ) {
       notify(
         "🏁 FIM DE JOGO",
-        `${fixture} • ${scoreValue(game.hs)} x ${scoreValue(game.as)}`
+        `${fixture} • ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)}`
       );
 
       markNotified(
@@ -1555,7 +1656,9 @@ async function requestNotifications() {
     await Notification
       .requestPermission();
 
-  if (permission === "granted") {
+  if (
+    permission === "granted"
+  ) {
     els.notificationBtn.textContent =
       "NOTIFICAÇÕES ATIVADAS";
   } else {
@@ -1582,21 +1685,31 @@ function setupNavigation() {
           document
             .querySelectorAll(".nav-item")
             .forEach(item =>
-              item.classList.remove("active")
+              item.classList.remove(
+                "active"
+              )
             );
 
           document
             .querySelectorAll(".page")
             .forEach(item =>
-              item.classList.remove("active")
+              item.classList.remove(
+                "active"
+              )
             );
 
-          button.classList.add("active");
+          button.classList.add(
+            "active"
+          );
 
           document
-            .getElementById(`page-${page}`)
+            .getElementById(
+              `page-${page}`
+            )
             ?.classList
-            .add("active");
+            .add(
+              "active"
+            );
         }
       );
     });
@@ -1643,11 +1756,21 @@ setupNavigation();
 
 refreshAll(true);
 
+
+/*
+  Relógio visual atualiza
+  a cada segundo.
+*/
 setInterval(
   updateVisibleClocks,
   1000
 );
 
+
+/*
+  API atualiza novamente
+  a cada 20 segundos.
+*/
 setInterval(
   () =>
     refreshAll(false),
