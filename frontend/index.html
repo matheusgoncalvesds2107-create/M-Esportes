@@ -19,7 +19,6 @@
 
 <div class="app">
 
-  <!-- TOPO -->
   <header class="topbar">
 
     <div>
@@ -36,28 +35,20 @@
       id="refreshBtn"
       class="icon-btn"
       type="button"
-      aria-label="Atualizar"
     >
       ↻
     </button>
 
   </header>
 
-
   <main class="content">
 
-
-    <!-- ========================= -->
     <!-- HOME -->
-    <!-- ========================= -->
 
     <section
       id="page-home"
       class="page active"
     >
-
-
-      <!-- M ESPORTES 3 MINUTOS -->
 
       <div class="hero">
 
@@ -80,12 +71,11 @@
       </div>
 
 
-      <!-- PRÉ-JOGO -->
+      <!-- ESQUENTANDO O JOGO -->
 
       <div class="section-head">
 
         <div>
-
           <span class="news-tag">
             M ESPORTES 3 MINUTOS APRESENTA
           </span>
@@ -93,7 +83,6 @@
           <h2>
             ESQUENTANDO O JOGO
           </h2>
-
         </div>
 
         <span>
@@ -103,28 +92,19 @@
       </div>
 
 
-      <div class="news-card">
+      <div
+        id="pregameCard"
+        class="pregame-card"
+      >
 
-        <div class="news-tag">
-          ⚽ DESTAQUE M ESPORTES
+        <div class="pregame-loading">
+          Carregando destaque do dia...
         </div>
-
-        <h3>
-          Futebol em tempo real
-        </h3>
-
-        <p>
-          Pré-jogo, informações, escalações,
-          resultados e os principais acontecimentos
-          das partidas do dia.
-        </p>
 
       </div>
 
 
-      <!-- ========================= -->
       <!-- M ESPORTES AGORA -->
-      <!-- ========================= -->
 
       <div class="section-head">
 
@@ -153,9 +133,7 @@
       ></div>
 
 
-      <!-- ========================= -->
       <!-- JOGOS -->
-      <!-- ========================= -->
 
       <div class="section-head">
 
@@ -175,14 +153,10 @@
         class="games-list"
       ></div>
 
-
     </section>
 
 
-
-    <!-- ========================= -->
     <!-- AO VIVO -->
-    <!-- ========================= -->
 
     <section
       id="page-live"
@@ -201,7 +175,6 @@
 
       </div>
 
-
       <div
         id="liveGames"
         class="games-list"
@@ -210,10 +183,7 @@
     </section>
 
 
-
-    <!-- ========================= -->
     <!-- FAVORITOS -->
-    <!-- ========================= -->
 
     <section
       id="page-favorites"
@@ -236,17 +206,16 @@
       <div class="info-card">
 
         <strong>
-          Notificações dos jogos escolhidos
+          Notificações somente dos jogos escolhidos
         </strong>
 
         <p>
-          Marque a estrela somente nos jogos que
-          você quer acompanhar.
+          Marque a estrela no jogo que você quer acompanhar.
         </p>
 
         <p>
-          O M Esportes avisa apenas esses jogos no:
-          início, intervalo e fim.
+          O M Esportes avisa somente no início,
+          intervalo e fim desses jogos.
         </p>
 
         <button
@@ -268,10 +237,7 @@
     </section>
 
 
-
-    <!-- ========================= -->
     <!-- LIGAS -->
-    <!-- ========================= -->
 
     <section
       id="page-leagues"
@@ -290,7 +256,6 @@
 
       </div>
 
-
       <div
         id="leaguesList"
         class="leagues-list"
@@ -298,32 +263,20 @@
 
     </section>
 
-
   </main>
 
 
-
-  <!-- ========================= -->
-  <!-- MENU INFERIOR -->
-  <!-- ========================= -->
+  <!-- MENU -->
 
   <nav class="bottom-nav">
-
 
     <button
       class="nav-item active"
       data-page="home"
       type="button"
     >
-
-      <span class="nav-icon">
-        ⌂
-      </span>
-
-      <span>
-        Home
-      </span>
-
+      <span class="nav-icon">⌂</span>
+      <span>Home</span>
     </button>
 
 
@@ -332,15 +285,8 @@
       data-page="live"
       type="button"
     >
-
-      <span class="nav-icon live-dot">
-        ●
-      </span>
-
-      <span>
-        Ao vivo
-      </span>
-
+      <span class="nav-icon live-dot">●</span>
+      <span>Ao vivo</span>
     </button>
 
 
@@ -349,15 +295,8 @@
       data-page="favorites"
       type="button"
     >
-
-      <span class="nav-icon">
-        ★
-      </span>
-
-      <span>
-        Favoritos
-      </span>
-
+      <span class="nav-icon">★</span>
+      <span>Favoritos</span>
     </button>
 
 
@@ -366,17 +305,9 @@
       data-page="leagues"
       type="button"
     >
-
-      <span class="nav-icon">
-        ▦
-      </span>
-
-      <span>
-        Ligas
-      </span>
-
+      <span class="nav-icon">▦</span>
+      <span>Ligas</span>
     </button>
-
 
   </nav>
 
