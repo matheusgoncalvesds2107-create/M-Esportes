@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: m-esportes-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+
+      - key: RPF_API_BASE
+        value: https://radioplacar-api.onrender.com
