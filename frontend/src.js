@@ -1,11 +1,18 @@
+/* =========================================================
+   M ESPORTES
+   FRONTEND PRINCIPAL
+========================================================= */
+
 const API_BASE = "https://radioplacar-api.onrender.com";
+
+/* =========================================================
+   ESTADO
+========================================================= */
 
 const state = {
   games: [],
   live: [],
-  leagues: [],
   news: [],
-  journeys: [],
 
   favorites: new Set(
     JSON.parse(
@@ -13,29 +20,347 @@ const state = {
     )
   ),
 
-  notified: JSON.parse(
-    localStorage.getItem("m-esportes-notified") || "{}"
-  ),
+  previousScores: {},
 
-  clocks: {}
+  scoreSystemStarted: false,
+
+  clocks: {},
+
+  goalAudioUnlocked: false,
+
+  serviceWorkerRegistration: null,
+
+  currentRadio: null
 };
+
+
+/* =========================================================
+   PREFERÊNCIAS DE ALERTA
+========================================================= */
+
+const alertDefaults = {
+  goal: true,
+  start: true,
+  halftime: true,
+  final: true
+};
+
+function loadAlertSettings() {
+  try {
+    return {
+      ...alertDefaults,
+      ...JSON.parse(
+        localStorage.getItem("m-esportes-alerts") || "{}"
+      )
+    };
+  } catch {
+    return { ...alertDefaults };
+  }
+}
+
+const alertSettings = loadAlertSettings();
+
+
+/* =========================================================
+   ELEMENTOS
+========================================================= */
 
 const els = {
-  homeGames: document.getElementById("homeGames"),
-  liveGames: document.getElementById("liveGames"),
-  favoriteGames: document.getElementById("favoriteGames"),
-  leaguesList: document.getElementById("leaguesList"),
-  newsList: document.getElementById("newsList"),
-  pregameCard: document.getElementById("pregameCard"),
+  homeGames:
+    document.getElementById("homeGames"),
 
-  todayCount: document.getElementById("todayCount"),
-  liveCount: document.getElementById("liveCount"),
-  favoritesCount: document.getElementById("favoritesCount"),
-  leaguesCount: document.getElementById("leaguesCount"),
+  liveGames:
+    document.getElementById("liveGames"),
 
-  refreshBtn: document.getElementById("refreshBtn"),
-  notificationBtn: document.getElementById("notificationBtn")
+  favoriteGames:
+    document.getElementById("favoriteGames"),
+
+  leaguesList:
+    document.getElementById("leaguesList"),
+
+  newsList:
+    document.getElementById("newsList"),
+
+  pregameCard:
+    document.getElementById("pregameCard"),
+
+  todayCount:
+    document.getElementById("todayCount"),
+
+  liveCount:
+    document.getElementById("liveCount"),
+
+  favoritesCount:
+    document.getElementById("favoritesCount"),
+
+  leaguesCount:
+    document.getElementById("leaguesCount"),
+
+  refreshBtn:
+    document.getElementById("refreshBtn"),
+
+  notificationBtn:
+    document.getElementById("notificationBtn"),
+
+  tickerTrack:
+    document.getElementById("tickerTrack"),
+
+  radioList:
+    document.getElementById("radioList"),
+
+  radioAudio:
+    document.getElementById("radioAudio"),
+
+  radioNowPlaying:
+    document.getElementById("radioNowPlaying"),
+
+  radioNowName:
+    document.getElementById("radioNowName"),
+
+  radioNowCity:
+    document.getElementById("radioNowCity"),
+
+  radioPauseBtn:
+    document.getElementById("radioPauseBtn"),
+
+  alertGoal:
+    document.getElementById("alertGoal"),
+
+  alertStart:
+    document.getElementById("alertStart"),
+
+  alertHalftime:
+    document.getElementById("alertHalftime"),
+
+  alertFinal:
+    document.getElementById("alertFinal")
 };
+
+
+/* =========================================================
+   ÁUDIO DE GOL
+========================================================= */
+
+const goalAudio =
+  new Audio("./audio/gol-rpf.mp3");
+
+goalAudio.preload = "auto";
+goalAudio.volume = 1;
+
+
+/* =========================================================
+   RÁDIOS
+
+   IMPORTANTE:
+   Nesta etapa NÃO abrimos sites externos.
+
+   stream null =
+   botão fica desativado até colocarmos
+   um endereço de áudio direto validado.
+========================================================= */
+
+const radios = [
+  {
+    name: "Rádio Gaúcha",
+    city: "Porto Alegre - RS",
+    stream: null
+  },
+  {
+    name: "Rádio Grenal",
+    city: "Porto Alegre - RS",
+    stream: null
+  },
+  {
+    name: "Rádio Guaíba",
+    city: "Porto Alegre - RS",
+    stream: null
+  },
+  {
+    name: "Band RS",
+    city: "Porto Alegre - RS",
+    stream: null
+  },
+  {
+    name: "Rádio Caxias",
+    city: "Caxias do Sul - RS",
+    stream: null
+  },
+  {
+    name: "Rádio Bandeirantes",
+    city: "São Paulo - SP",
+    stream: null
+  },
+  {
+    name: "Jovem Pan News",
+    city: "São Paulo - SP",
+    stream: null
+  },
+  {
+    name: "Energia 97",
+    city: "São Paulo - SP",
+    stream: null
+  },
+  {
+    name: "CBN São Paulo",
+    city: "São Paulo - SP",
+    stream: null
+  },
+  {
+    name: "Transamérica",
+    city: "São Paulo - SP",
+    stream: null
+  },
+  {
+    name: "Super Rádio Tupi",
+    city: "Rio de Janeiro - RJ",
+    stream: null
+  },
+  {
+    name: "CBN Rio",
+    city: "Rio de Janeiro - RJ",
+    stream: null
+  },
+  {
+    name: "BandNews FM Rio",
+    city: "Rio de Janeiro - RJ",
+    stream: null
+  },
+  {
+    name: "Rádio Globo",
+    city: "Rio de Janeiro - RJ",
+    stream: null
+  },
+  {
+    name: "Rádio Itatiaia",
+    city: "Belo Horizonte - MG",
+    stream: null
+  },
+  {
+    name: "98 FM",
+    city: "Belo Horizonte - MG",
+    stream: null
+  },
+  {
+    name: "Rádio Super",
+    city: "Belo Horizonte - MG",
+    stream: null
+  },
+  {
+    name: "Rádio Jornal",
+    city: "Recife - PE",
+    stream: null
+  },
+  {
+    name: "CBN Recife",
+    city: "Recife - PE",
+    stream: null
+  },
+  {
+    name: "Transamérica Recife",
+    city: "Recife - PE",
+    stream: null
+  },
+  {
+    name: "Verdinha",
+    city: "Fortaleza - CE",
+    stream: null
+  },
+  {
+    name: "Jovem Pan Fortaleza",
+    city: "Fortaleza - CE",
+    stream: null
+  },
+  {
+    name: "Rádio Assunção",
+    city: "Fortaleza - CE",
+    stream: null
+  },
+  {
+    name: "CBN Salvador",
+    city: "Salvador - BA",
+    stream: null
+  },
+  {
+    name: "Rádio Sociedade",
+    city: "Salvador - BA",
+    stream: null
+  },
+  {
+    name: "CBN Brasília",
+    city: "Brasília - DF",
+    stream: null
+  },
+  {
+    name: "Rádio Nacional",
+    city: "Brasília - DF",
+    stream: null
+  },
+  {
+    name: "CBN Goiânia",
+    city: "Goiânia - GO",
+    stream: null
+  },
+  {
+    name: "Sagres",
+    city: "Goiânia - GO",
+    stream: null
+  },
+  {
+    name: "Rádio Clube",
+    city: "Curitiba - PR",
+    stream: null
+  },
+  {
+    name: "CBN Curitiba",
+    city: "Curitiba - PR",
+    stream: null
+  },
+  {
+    name: "Rádio Transamérica Curitiba",
+    city: "Curitiba - PR",
+    stream: null
+  },
+  {
+    name: "CBN Florianópolis",
+    city: "Florianópolis - SC",
+    stream: null
+  },
+  {
+    name: "Rádio Guarujá",
+    city: "Florianópolis - SC",
+    stream: null
+  },
+  {
+    name: "Mirante News",
+    city: "São Luís - MA",
+    stream: null
+  },
+  {
+    name: "Clube do Pará",
+    city: "Belém - PA",
+    stream: null
+  },
+  {
+    name: "CBN Amazônia",
+    city: "Manaus - AM",
+    stream: null
+  },
+  {
+    name: "Rádio Clube",
+    city: "Teresina - PI",
+    stream: null
+  },
+  {
+    name: "Rádio 98",
+    city: "Natal - RN",
+    stream: null
+  },
+  {
+    name: "Rádio Correio",
+    city: "João Pessoa - PB",
+    stream: null
+  }
+];
 
 
 /* =========================================================
@@ -65,45 +390,55 @@ function first(...values) {
   return null;
 }
 
-function todayBR() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(new Date());
-}
-
 function pad2(value) {
-  return String(value).padStart(2, "0");
+  return String(value)
+    .padStart(2, "0");
 }
 
-
-/* =========================================================
-   HORÁRIO
-========================================================= */
-
-function formatMatchTime(dateRaw) {
-  if (!dateRaw) {
-    return "--:--";
-  }
-
-  try {
-    const date = new Date(dateRaw);
-
-    if (Number.isNaN(date.getTime())) {
-      return "--:--";
-    }
-
-    return date.toLocaleTimeString("pt-BR", {
+function todayBR() {
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
       timeZone: "America/Sao_Paulo",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
-  } catch {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }
+  ).format(new Date());
+}
+
+function formatMatchTime(value) {
+  if (!value) {
     return "--:--";
   }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "--:--";
+  }
+
+  return date.toLocaleTimeString(
+    "pt-BR",
+    {
+      timeZone:
+        "America/Sao_Paulo",
+
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+
+      hour12:
+        false
+    }
+  );
 }
 
 
@@ -112,18 +447,19 @@ function formatMatchTime(dateRaw) {
 ========================================================= */
 
 function normalizeStatus(raw) {
-  const value = String(raw || "")
-    .trim()
-    .toLowerCase();
+  const value =
+    String(raw || "")
+      .trim()
+      .toLowerCase();
 
   if (
     value === "1h" ||
     value === "1st_half" ||
     value === "first_half" ||
+    value === "firsthalf" ||
     value === "live" ||
     value === "inprogress" ||
-    value === "in_progress" ||
-    value === "firsthalf"
+    value === "in_progress"
   ) {
     return "1H";
   }
@@ -161,8 +497,8 @@ function normalizeStatus(raw) {
   if (
     value === "ns" ||
     value === "scheduled" ||
-    value === "not_started" ||
-    value === "notstarted"
+    value === "notstarted" ||
+    value === "not_started"
   ) {
     return "NS";
   }
@@ -176,157 +512,160 @@ function normalizeStatus(raw) {
 ========================================================= */
 
 function normalizeGame(game) {
-  const homeId = first(
-    game.teams?.home?.id,
-    game.home?.id,
-    game.home_team?.id,
-    game.home_team_id
-  );
+  const homeId =
+    first(
+      game.teams?.home?.id,
+      game.home?.id,
+      game.home_team?.id,
+      game.home_team_id
+    );
 
-  const awayId = first(
-    game.teams?.away?.id,
-    game.away?.id,
-    game.away_team?.id,
-    game.away_team_id
-  );
+  const awayId =
+    first(
+      game.teams?.away?.id,
+      game.away?.id,
+      game.away_team?.id,
+      game.away_team_id
+    );
 
-  const rawStatus = first(
-    game.status?.short,
-    game.fixture?.status?.short,
-    game.status,
-    game.state,
-    game.match_status
-  );
+  const rawStatus =
+    first(
+      game.status?.short,
+      game.fixture?.status?.short,
+      game.status,
+      game.state,
+      game.match_status
+    );
 
-  const dateRaw = first(
-    game.event_date,
-    game.fixture?.date,
-    game.date,
-    game.start_time,
-    game.kickoff,
-    game.datetime
-  );
+  const dateRaw =
+    first(
+      game.event_date,
+      game.fixture?.date,
+      game.date,
+      game.start_time,
+      game.kickoff,
+      game.datetime
+    );
 
-  let start = first(
-    game.time,
-    game.fixture?.time,
-    game.hour,
-    null
-  );
+  const start =
+    first(
+      game.time,
+      game.fixture?.time,
+      game.hour,
+      formatMatchTime(dateRaw)
+    );
 
-  if (!start && dateRaw) {
-    start = formatMatchTime(dateRaw);
-  }
-
-  const homeLogo = first(
-    game.teams?.home?.logo,
-    game.home?.logo,
-    game.home_team?.logo,
-    game.home_logo,
-    game.team_home_logo,
-    game.logo_home,
-    game.home_team_logo,
-    homeId
-      ? `${API_BASE}/api/team-logo/${homeId}`
-      : null
-  );
-
-  const awayLogo = first(
-    game.teams?.away?.logo,
-    game.away?.logo,
-    game.away_team?.logo,
-    game.away_logo,
-    game.team_away_logo,
-    game.logo_away,
-    game.away_team_logo,
-    awayId
-      ? `${API_BASE}/api/team-logo/${awayId}`
-      : null
-  );
-
-  return {
-    id: String(
-      first(
-        game.id,
-        game.fixture?.id,
-        `${homeId || "h"}-${awayId || "a"}-${dateRaw || ""}`
-      )
-    ),
-
-    league: first(
-      game.league?.name,
-      game.competition?.name,
-      game.league_name,
-      game.championship,
-      game.league,
-      "Campeonato"
-    ),
-
-    country: first(
-      game.league?.country,
-      game.country?.name,
-      game.country,
-      game.region,
-      "Internacional"
-    ),
-
-    home: first(
+  const home =
+    first(
       game.teams?.home?.name,
       game.home?.name,
       game.home_team?.name,
       game.home_team,
       "Mandante"
-    ),
+    );
 
-    away: first(
+  const away =
+    first(
       game.teams?.away?.name,
       game.away?.name,
       game.away_team?.name,
       game.away_team,
       "Visitante"
-    ),
+    );
+
+  return {
+    id:
+      String(
+        first(
+          game.id,
+          game.fixture?.id,
+          `${homeId || "h"}-${awayId || "a"}-${dateRaw || ""}`
+        )
+      ),
+
+    home,
+    away,
 
     homeId,
     awayId,
 
-    homeLogo,
-    awayLogo,
+    homeLogo:
+      first(
+        game.teams?.home?.logo,
+        game.home?.logo,
+        game.home_logo,
+        homeId
+          ? `${API_BASE}/api/team-logo/${homeId}`
+          : null
+      ),
 
-    hs: first(
-      game.goals?.home,
-      game.score?.home,
-      game.home_score,
-      game.score_home
-    ),
+    awayLogo:
+      first(
+        game.teams?.away?.logo,
+        game.away?.logo,
+        game.away_logo,
+        awayId
+          ? `${API_BASE}/api/team-logo/${awayId}`
+          : null
+      ),
 
-    as: first(
-      game.goals?.away,
-      game.score?.away,
-      game.away_score,
-      game.score_away
-    ),
+    hs:
+      first(
+        game.goals?.home,
+        game.score?.home,
+        game.home_score,
+        game.score_home
+      ),
 
-    minute: first(
-      game.current_minute,
-      game.minute,
-      game.elapsed,
-      game.status?.elapsed,
-      game.fixture?.status?.elapsed
-    ),
+    as:
+      first(
+        game.goals?.away,
+        game.score?.away,
+        game.away_score,
+        game.score_away
+      ),
 
-    status: normalizeStatus(rawStatus),
+    minute:
+      first(
+        game.current_minute,
+        game.minute,
+        game.elapsed,
+        game.status?.elapsed,
+        game.fixture?.status?.elapsed
+      ),
 
-    start: start || "--:--",
+    status:
+      normalizeStatus(
+        rawStatus
+      ),
 
-    date: dateRaw,
+    league:
+      first(
+        game.league?.name,
+        game.competition?.name,
+        game.league_name,
+        game.championship,
+        game.league,
+        "Campeonato"
+      ),
 
-    leagueId: first(
-      game.league_id,
-      game.league?.id,
-      game.competition?.id
-    ),
+    country:
+      first(
+        game.league?.country,
+        game.country?.name,
+        game.country,
+        game.region,
+        "Internacional"
+      ),
 
-    raw: game
+    start:
+      start || "--:--",
+
+    date:
+      dateRaw,
+
+    raw:
+      game
   };
 }
 
@@ -336,25 +675,30 @@ function normalizeGame(game) {
 ========================================================= */
 
 function extractArray(data) {
-  if (Array.isArray(data)) {
+  if (
+    Array.isArray(data)
+  ) {
     return data;
   }
 
-  for (const key of [
-    "response",
-    "matches",
-    "games",
-    "fixtures",
-    "results",
-    "data"
-  ]) {
-    if (Array.isArray(data?.[key])) {
+  for (
+    const key
+    of [
+      "response",
+      "matches",
+      "games",
+      "fixtures",
+      "results",
+      "data"
+    ]
+  ) {
+    if (
+      Array.isArray(
+        data?.[key]
+      )
+    ) {
       return data[key];
     }
-  }
-
-  if (Array.isArray(data?.response?.data)) {
-    return data.response.data;
   }
 
   return [];
@@ -362,108 +706,135 @@ function extractArray(data) {
 
 
 /* =========================================================
-   PARTIDAS
+   PARTIDA
 ========================================================= */
 
 function isLive(game) {
-  return ["1H", "HT", "2H"].includes(game.status);
+  return [
+    "1H",
+    "HT",
+    "2H"
+  ].includes(
+    game.status
+  );
 }
 
+function numericScore(value) {
+  const number =
+    Number(value);
 
-/*
-  PRÉ-JOGO:
-  null vira 0.
+  return Number.isFinite(number)
+    ? number
+    : 0;
+}
 
-  AO VIVO / ENCERRADO:
-  mantém o placar que vier da API.
-*/
-function scoreValue(value, game = null) {
+function scoreValue(
+  value,
+  game
+) {
   if (
-    game &&
-    game.status === "NS" &&
+    game?.status === "NS" &&
     (
       value === null ||
       value === undefined ||
       value === ""
     )
   ) {
-    return 0;
+    return "-";
   }
 
-  return value === null ||
+  if (
+    value === null ||
     value === undefined ||
     value === ""
-    ? "-"
-    : value;
+  ) {
+    return "-";
+  }
+
+  return value;
 }
 
 
 /* =========================================================
-   RELÓGIO AO VIVO
+   RELÓGIO
 ========================================================= */
 
-function syncGameClock(game) {
-  const id = String(game.id);
+function syncClock(game) {
+  const id =
+    String(game.id);
 
   if (
-    game.status === "HT" ||
-    game.status === "FT" ||
-    game.status === "NS"
+    ![
+      "1H",
+      "2H"
+    ].includes(
+      game.status
+    )
   ) {
     delete state.clocks[id];
     return;
   }
 
-  if (!["1H", "2H"].includes(game.status)) {
+  const minute =
+    Number(game.minute);
+
+  if (
+    !Number.isFinite(
+      minute
+    )
+  ) {
     return;
   }
 
-  const minute = Number(game.minute);
-
-  if (!Number.isFinite(minute)) {
-    return;
-  }
-
-  const old = state.clocks[id];
+  const old =
+    state.clocks[id];
 
   if (
     !old ||
-    old.apiMinute !== minute ||
+    old.minute !== minute ||
     old.status !== game.status
   ) {
     state.clocks[id] = {
-      apiMinute: minute,
-      status: game.status,
-      syncedAt: Date.now()
+      minute,
+      status:
+        game.status,
+
+      syncedAt:
+        Date.now()
     };
   }
 }
 
 function syncAllClocks() {
-  for (const game of state.games) {
-    syncGameClock(game);
-  }
+  state.games
+    .forEach(
+      syncClock
+    );
 }
 
 function getGameClock(game) {
-  if (game.status === "HT") {
+  if (
+    game.status === "HT"
+  ) {
     return "INTERVALO";
   }
 
-  if (game.status === "FT") {
+  if (
+    game.status === "FT"
+  ) {
     return "ENCERRADO";
   }
 
-  if (game.status === "NS") {
-    return game.start || "--:--";
-  }
-
-  if (!["1H", "2H"].includes(game.status)) {
-    return game.start || "--:--";
+  if (
+    game.status === "NS"
+  ) {
+    return game.start;
   }
 
   const clock =
-    state.clocks[String(game.id)];
+    state.clocks[
+      String(game.id)
+    ];
 
   if (!clock) {
     return game.status === "1H"
@@ -471,45 +842,210 @@ function getGameClock(game) {
       : "2º TEMPO";
   }
 
-  const elapsedSeconds =
+  const seconds =
     Math.max(
       0,
       Math.floor(
-        (Date.now() - clock.syncedAt) / 1000
+        (
+          Date.now() -
+          clock.syncedAt
+        ) / 1000
       )
     );
 
-  const totalSeconds =
-    clock.apiMinute * 60 +
-    elapsedSeconds;
+  const total =
+    clock.minute * 60 +
+    seconds;
 
   const minute =
-    Math.floor(totalSeconds / 60);
+    Math.floor(
+      total / 60
+    );
 
   const second =
-    totalSeconds % 60;
+    total % 60;
 
-  return `${pad2(minute)}:${pad2(second)}`;
+  return (
+    `${pad2(minute)}:${pad2(second)}`
+  );
 }
 
 function periodText(game) {
-  if (game.status === "1H") {
-    return "1º TEMPO";
+  switch (
+    game.status
+  ) {
+    case "1H":
+      return "1º TEMPO";
+
+    case "HT":
+      return "INTERVALO";
+
+    case "2H":
+      return "2º TEMPO";
+
+    case "FT":
+      return "ENCERRADO";
+
+    default:
+      return "PRÉ-JOGO";
+  }
+}
+
+
+/* =========================================================
+   ÁUDIO DE GOL
+========================================================= */
+
+function unlockGoalAudio() {
+  if (
+    state.goalAudioUnlocked
+  ) {
+    return;
   }
 
-  if (game.status === "HT") {
-    return "INTERVALO";
+  try {
+    const volume =
+      goalAudio.volume;
+
+    goalAudio.volume = 0;
+
+    const promise =
+      goalAudio.play();
+
+    if (promise) {
+      promise
+        .then(() => {
+          goalAudio.pause();
+
+          goalAudio.currentTime = 0;
+          goalAudio.volume = volume;
+
+          state.goalAudioUnlocked = true;
+        })
+        .catch(() => {
+          goalAudio.volume = volume;
+        });
+    }
+  } catch {
+    /* aguardando interação */
+  }
+}
+
+function playGoalRpf() {
+  if (
+    !alertSettings.goal
+  ) {
+    return;
   }
 
-  if (game.status === "2H") {
-    return "2º TEMPO";
-  }
+  try {
+    goalAudio.pause();
+    goalAudio.currentTime = 0;
+    goalAudio.volume = 1;
 
-  if (game.status === "FT") {
-    return "ENCERRADO";
+    goalAudio
+      .play()
+      .catch(
+        console.warn
+      );
+  } catch (
+    error
+  ) {
+    console.error(
+      error
+    );
   }
+}
 
-  return "PRÉ-JOGO";
+
+/* =========================================================
+   DETECTOR DE GOL
+========================================================= */
+
+function initializeScoreMemory() {
+  state.games
+    .forEach(
+      game => {
+        state.previousScores[
+          String(game.id)
+        ] = {
+          home:
+            numericScore(
+              game.hs
+            ),
+
+          away:
+            numericScore(
+              game.as
+            )
+        };
+      }
+    );
+
+  state.scoreSystemStarted = true;
+}
+
+function checkGoals() {
+  state.games
+    .forEach(
+      game => {
+        const id =
+          String(game.id);
+
+        const current = {
+          home:
+            numericScore(
+              game.hs
+            ),
+
+          away:
+            numericScore(
+              game.as
+            )
+        };
+
+        const previous =
+          state.previousScores[id];
+
+        if (!previous) {
+          state.previousScores[id] =
+            current;
+
+          return;
+        }
+
+        const homeGoal =
+          current.home >
+          previous.home;
+
+        const awayGoal =
+          current.away >
+          previous.away;
+
+        if (
+          state.favorites.has(id) &&
+          (
+            homeGoal ||
+            awayGoal
+          )
+        ) {
+          const scoringTeam =
+            homeGoal
+              ? game.home
+              : game.away;
+
+          playGoalRpf();
+
+          notify(
+            "⚽ GOOOOOL!",
+            `${scoringTeam} marcou! ${game.home} ${current.home} x ${current.away} ${game.away}`
+          );
+        }
+
+        state.previousScores[id] =
+          current;
+      }
+    );
 }
 
 
@@ -517,40 +1053,46 @@ function periodText(game) {
    ESCUDOS
 ========================================================= */
 
-function teamLogo(url, team) {
-  if (url) {
+function teamLogo(
+  url,
+  team
+) {
+  if (!url) {
     return `
-      <img
-        class="team-logo"
-        src="${escapeHtml(url)}"
-        alt="${escapeHtml(team)}"
-        loading="lazy"
-        referrerpolicy="no-referrer"
-        onerror="
-          this.style.display='none';
-          this.nextElementSibling.style.display='grid';
-        "
-      >
-
-      <span
-        class="team-logo-fallback"
-        style="display:none"
-      >
-        ${escapeHtml(team?.charAt(0) || "?")}
+      <span class="team-logo-fallback">
+        ${escapeHtml(
+          team?.charAt(0) || "?"
+        )}
       </span>
     `;
   }
 
   return `
-    <span class="team-logo-fallback">
-      ${escapeHtml(team?.charAt(0) || "?")}
+    <img
+      class="team-logo"
+      src="${escapeHtml(url)}"
+      alt="${escapeHtml(team)}"
+      loading="lazy"
+      onerror="
+        this.style.display='none';
+        this.nextElementSibling.style.display='grid';
+      "
+    >
+
+    <span
+      class="team-logo-fallback"
+      style="display:none"
+    >
+      ${escapeHtml(
+        team?.charAt(0) || "?"
+      )}
     </span>
   `;
 }
 
 
 /* =========================================================
-   CARD JOGO
+   CARD DE JOGO
 ========================================================= */
 
 function matchCard(game) {
@@ -560,7 +1102,12 @@ function matchCard(game) {
     );
 
   const live =
-    ["1H", "2H"].includes(game.status);
+    [
+      "1H",
+      "2H"
+    ].includes(
+      game.status
+    );
 
   return `
     <div class="match-card">
@@ -575,10 +1122,14 @@ function matchCard(game) {
                 class="status-pill"
                 data-clock-id="${escapeHtml(game.id)}"
               >
-                ${escapeHtml(getGameClock(game))}
+                ${escapeHtml(
+                  getGameClock(game)
+                )}
               </span>
             `
-            : escapeHtml(getGameClock(game))
+            : escapeHtml(
+                getGameClock(game)
+              )
         }
       </div>
 
@@ -592,7 +1143,9 @@ function matchCard(game) {
           )}
 
           <span class="team-name">
-            ${escapeHtml(game.home)}
+            ${escapeHtml(
+              game.home
+            )}
           </span>
 
         </div>
@@ -605,7 +1158,9 @@ function matchCard(game) {
           )}
 
           <span class="team-name">
-            ${escapeHtml(game.away)}
+            ${escapeHtml(
+              game.away
+            )}
           </span>
 
         </div>
@@ -615,11 +1170,17 @@ function matchCard(game) {
       <div class="score">
 
         <span>
-          ${scoreValue(game.hs, game)}
+          ${scoreValue(
+            game.hs,
+            game
+          )}
         </span>
 
         <span>
-          ${scoreValue(game.as, game)}
+          ${scoreValue(
+            game.as,
+            game
+          )}
         </span>
 
       </div>
@@ -628,6 +1189,7 @@ function matchCard(game) {
         class="favorite-btn ${favorite ? "active" : ""}"
         data-favorite="${escapeHtml(game.id)}"
         type="button"
+        title="Acompanhar jogo"
       >
         ★
       </button>
@@ -638,34 +1200,51 @@ function matchCard(game) {
 
 
 /* =========================================================
-   AGRUPAR POR CAMPEONATO
+   AGRUPAMENTO
 ========================================================= */
 
-function groupGames(games) {
-  const map = new Map();
+function groupGames(
+  games
+) {
+  const map =
+    new Map();
 
-  for (const game of games) {
-    const country =
-      game.country || "Internacional";
+  games.forEach(
+    game => {
+      const country =
+        game.country ||
+        "Internacional";
 
-    const league =
-      game.league || "Campeonato";
+      const league =
+        game.league ||
+        "Campeonato";
 
-    const key =
-      `${country}|${league}`;
+      const key =
+        `${country}|${league}`;
 
-    if (!map.has(key)) {
-      map.set(key, {
-        country,
-        league,
-        games: []
-      });
+      if (
+        !map.has(key)
+      ) {
+        map.set(
+          key,
+          {
+            country,
+            league,
+            games: []
+          }
+        );
+      }
+
+      map
+        .get(key)
+        .games
+        .push(game);
     }
+  );
 
-    map.get(key).games.push(game);
-  }
-
-  return [...map.values()];
+  return [
+    ...map.values()
+  ];
 }
 
 
@@ -679,16 +1258,26 @@ function renderGames(
   emptyTitle,
   emptyText
 ) {
-  if (!games.length) {
+  if (!container) {
+    return;
+  }
+
+  if (
+    !games.length
+  ) {
     container.innerHTML = `
       <div class="empty-state">
 
         <strong>
-          ${escapeHtml(emptyTitle)}
+          ${escapeHtml(
+            emptyTitle
+          )}
         </strong>
 
         <span>
-          ${escapeHtml(emptyText)}
+          ${escapeHtml(
+            emptyText
+          )}
         </span>
 
       </div>
@@ -705,14 +1294,18 @@ function renderGames(
 
             <div class="league-header">
 
-              <div class="league-name">
+              <div>
 
                 <div class="league-country">
-                  ${escapeHtml(group.country)}
+                  ${escapeHtml(
+                    group.country
+                  )}
                 </div>
 
                 <div class="league-title">
-                  ${escapeHtml(group.league)}
+                  ${escapeHtml(
+                    group.league
+                  )}
                 </div>
 
               </div>
@@ -724,7 +1317,11 @@ function renderGames(
 
             </div>
 
-            ${group.games.map(matchCard).join("")}
+            ${
+              group.games
+                .map(matchCard)
+                .join("")
+            }
 
           </div>
         `
@@ -734,75 +1331,63 @@ function renderGames(
 
 
 /* =========================================================
-   ESQUENTANDO O JOGO
+   DESTAQUE
 ========================================================= */
 
 function choosePregameGame() {
-  if (!state.games.length) {
-    return null;
-  }
+  return (
+    state.games.find(
+      game =>
+        [
+          "1H",
+          "2H"
+        ].includes(
+          game.status
+        )
+    ) ||
 
-  const live =
-    state.games.find(game =>
-      ["1H", "2H"].includes(game.status)
-    );
+    state.games.find(
+      game =>
+        game.status === "HT"
+    ) ||
 
-  if (live) {
-    return live;
-  }
+    state.games.find(
+      game =>
+        game.status === "NS"
+    ) ||
 
-  const halftime =
-    state.games.find(game =>
-      game.status === "HT"
-    );
+    state.games[0] ||
 
-  if (halftime) {
-    return halftime;
-  }
-
-  const upcoming =
-    state.games.find(game =>
-      game.status === "NS"
-    );
-
-  if (upcoming) {
-    return upcoming;
-  }
-
-  return state.games[0];
+    null
+  );
 }
 
-function pregameLogo(url, team) {
+function pregameLogo(
+  url,
+  team
+) {
   if (url) {
     return `
       <img
         src="${escapeHtml(url)}"
         alt="${escapeHtml(team)}"
-        referrerpolicy="no-referrer"
-        onerror="
-          this.style.display='none';
-          this.nextElementSibling.style.display='grid';
-        "
       >
-
-      <div
-        class="pregame-team-logo-fallback"
-        style="display:none"
-      >
-        ${escapeHtml(team?.charAt(0) || "?")}
-      </div>
     `;
   }
 
   return `
     <div class="pregame-team-logo-fallback">
-      ${escapeHtml(team?.charAt(0) || "?")}
+      ${escapeHtml(
+        team?.charAt(0) || "?"
+      )}
     </div>
   `;
 }
 
 function renderPregame() {
-  if (!els.pregameCard) {
+  if (
+    !els.pregameCard
+  ) {
     return;
   }
 
@@ -812,7 +1397,7 @@ function renderPregame() {
   if (!game) {
     els.pregameCard.innerHTML = `
       <div class="pregame-loading">
-        Nenhum jogo disponível para destaque.
+        Nenhum jogo disponível agora.
       </div>
     `;
 
@@ -820,13 +1405,12 @@ function renderPregame() {
   }
 
   const live =
-    ["1H", "2H"].includes(game.status);
-
-  const halftime =
-    game.status === "HT";
-
-  const finished =
-    game.status === "FT";
+    [
+      "1H",
+      "2H"
+    ].includes(
+      game.status
+    );
 
   let center = "";
 
@@ -840,7 +1424,9 @@ function renderPregame() {
         class="time"
         data-clock-id="${escapeHtml(game.id)}"
       >
-        ${escapeHtml(getGameClock(game))}
+        ${escapeHtml(
+          getGameClock(game)
+        )}
       </div>
 
       <div class="score-big">
@@ -849,7 +1435,9 @@ function renderPregame() {
         ${scoreValue(game.as, game)}
       </div>
     `;
-  } else if (halftime) {
+  } else if (
+    game.status === "HT"
+  ) {
     center = `
       <div class="label">
         INTERVALO
@@ -861,7 +1449,9 @@ function renderPregame() {
         ${scoreValue(game.as, game)}
       </div>
     `;
-  } else if (finished) {
+  } else if (
+    game.status === "FT"
+  ) {
     center = `
       <div class="label">
         ENCERRADO
@@ -880,17 +1470,13 @@ function renderPregame() {
       </div>
 
       <div class="time">
-        ${escapeHtml(game.start)}
+        ${escapeHtml(
+          game.start
+        )}
       </div>
 
       <div class="score-big">
-        ${scoreValue(game.hs, game)}
         x
-        ${scoreValue(game.as, game)}
-      </div>
-
-      <div class="pregame-country">
-        INÍCIO DA PARTIDA
       </div>
     `;
   }
@@ -901,11 +1487,15 @@ function renderPregame() {
       <div>
 
         <div class="pregame-competition">
-          ${escapeHtml(game.league)}
+          ${escapeHtml(
+            game.league
+          )}
         </div>
 
         <div class="pregame-country">
-          ${escapeHtml(game.country)}
+          ${escapeHtml(
+            game.country
+          )}
         </div>
 
       </div>
@@ -914,9 +1504,9 @@ function renderPregame() {
         ${
           live
             ? "AO VIVO"
-            : halftime
+            : game.status === "HT"
               ? "INTERVALO"
-              : finished
+              : game.status === "FT"
                 ? "ENCERRADO"
                 : "PRÉ-JOGO"
         }
@@ -938,7 +1528,9 @@ function renderPregame() {
         )}
 
         <strong>
-          ${escapeHtml(game.home)}
+          ${escapeHtml(
+            game.home
+          )}
         </strong>
 
       </div>
@@ -955,30 +1547,12 @@ function renderPregame() {
         )}
 
         <strong>
-          ${escapeHtml(game.away)}
+          ${escapeHtml(
+            game.away
+          )}
         </strong>
 
       </div>
-
-    </div>
-
-    <div class="pregame-highlight">
-
-      <small>
-        DESTAQUE M ESPORTES
-      </small>
-
-      <h3>
-        ${escapeHtml(game.home)}
-        x
-        ${escapeHtml(game.away)}
-      </h3>
-
-      <p>
-        ${escapeHtml(game.league)}
-        • acompanhe horário, relógio,
-        placar e status da partida.
-      </p>
 
     </div>
   `;
@@ -992,138 +1566,120 @@ function renderPregame() {
 function createAutomaticNews() {
   const news = [];
 
-  for (
-    const journey of state.journeys.slice(0, 2)
-  ) {
-    news.push({
-      type: "JORNADA RPF",
+  state.games
+    .filter(isLive)
+    .slice(0, 4)
+    .forEach(
+      game => {
+        news.push({
+          type:
+            "AO VIVO",
 
-      title: first(
-        journey.title,
-        journey.name,
-        journey.match,
-        "Jornada esportiva RPF ativa"
-      ),
+          title:
+            `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
 
-      summary:
-        "O Motor RPF está com uma jornada esportiva ativa."
-    });
-  }
-
-  const liveGames =
-    state.games.filter(game =>
-      ["1H", "2H"].includes(game.status)
+          summary:
+            `${periodText(game)} • ${game.league}`
+        });
+      }
     );
 
-  for (
-    const game of liveGames.slice(0, 3)
-  ) {
-    news.push({
-      type: "AO VIVO AGORA",
+  state.games
+    .filter(
+      game =>
+        game.status === "HT"
+    )
+    .slice(0, 2)
+    .forEach(
+      game => {
+        news.push({
+          type:
+            "INTERVALO",
 
-      title:
-        `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
+          title:
+            `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
 
-      summary:
-        `${periodText(game)} • ${game.league}.`
-    });
-  }
-
-  const halftime =
-    state.games.filter(game =>
-      game.status === "HT"
+          summary:
+            `${game.league}`
+        });
+      }
     );
 
-  for (
-    const game of halftime.slice(0, 2)
-  ) {
-    news.push({
-      type: "INTERVALO",
+  state.games
+    .filter(
+      game =>
+        game.status === "NS"
+    )
+    .slice(0, 4)
+    .forEach(
+      game => {
+        news.push({
+          type:
+            "PRÓXIMO JOGO",
 
-      title:
-        `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
+          title:
+            `${game.home} x ${game.away}`,
 
-      summary:
-        `Fim do primeiro tempo em ${game.league}.`
-    });
-  }
-
-  const upcoming =
-    state.games.filter(game =>
-      game.status === "NS"
+          summary:
+            `${game.league} • ${game.start}`
+        });
+      }
     );
 
-  for (
-    const game of upcoming.slice(0, 3)
-  ) {
-    news.push({
-      type: "PRÓXIMO JOGO",
+  state.games
+    .filter(
+      game =>
+        game.status === "FT"
+    )
+    .slice(0, 4)
+    .forEach(
+      game => {
+        news.push({
+          type:
+            "FIM DE JOGO",
 
-      title:
-        `${game.home} x ${game.away}`,
+          title:
+            `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
 
-      summary:
-        `${game.league} • começa às ${game.start}.`
-    });
-  }
-
-  const finished =
-    state.games.filter(game =>
-      game.status === "FT"
+          summary:
+            `${game.league}`
+        });
+      }
     );
-
-  for (
-    const game of finished.slice(0, 3)
-  ) {
-    news.push({
-      type: "FIM DE JOGO",
-
-      title:
-        `${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`,
-
-      summary:
-        `Partida encerrada por ${game.league}.`
-    });
-  }
-
-  if (state.games.length) {
-    const championships =
-      groupGames(state.games).length;
-
-    news.push({
-      type: "GIRO DO DIA",
-
-      title:
-        `${state.games.length} jogos no M Esportes hoje`,
-
-      summary:
-        `${championships} campeonato${championships === 1 ? "" : "s"} com partidas disponíveis.`
-    });
-  }
-
-  if (!news.length) {
-    news.push({
-      type: "M ESPORTES AGORA",
-
-      title:
-        "Plantão esportivo em atualização",
-
-      summary:
-        "Assim que houver partidas, as informações aparecem aqui automaticamente."
-    });
-  }
 
   state.news =
-    news.slice(0, 8);
+    news.slice(0, 10);
 }
 
 
 /* =========================================================
-   RENDER NOTÍCIAS
+   NOTÍCIAS
 ========================================================= */
 
 function renderNews() {
-  if (!els.newsList) {
+  if (
+    !els.newsList
+  ) {
+    return;
+  }
+
+  if (
+    !state.news.length
+  ) {
+    els.newsList.innerHTML = `
+      <div class="empty-state">
+
+        <strong>
+          M Esportes Agora
+        </strong>
+
+        <span>
+          Aguardando atualizações das partidas.
+        </span>
+
+      </div>
+    `;
+
     return;
   }
 
@@ -1134,15 +1690,21 @@ function renderNews() {
           <article class="news-card">
 
             <div class="news-tag">
-              🔴 ${escapeHtml(item.type)}
+              🔴 ${escapeHtml(
+                item.type
+              )}
             </div>
 
             <h3>
-              ${escapeHtml(item.title)}
+              ${escapeHtml(
+                item.title
+              )}
             </h3>
 
             <p>
-              ${escapeHtml(item.summary)}
+              ${escapeHtml(
+                item.summary
+              )}
             </p>
 
           </article>
@@ -1153,22 +1715,89 @@ function renderNews() {
 
 
 /* =========================================================
+   TICKER
+========================================================= */
+
+function renderTicker() {
+  if (
+    !els.tickerTrack
+  ) {
+    return;
+  }
+
+  const parts = [];
+
+  state.games
+    .filter(isLive)
+    .slice(0, 5)
+    .forEach(
+      game => {
+        parts.push(
+          `🔴 AO VIVO: ${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`
+        );
+      }
+    );
+
+  state.games
+    .filter(
+      game =>
+        game.status === "FT"
+    )
+    .slice(0, 5)
+    .forEach(
+      game => {
+        parts.push(
+          `🏁 FIM: ${game.home} ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)} ${game.away}`
+        );
+      }
+    );
+
+  state.games
+    .filter(
+      game =>
+        game.status === "NS"
+    )
+    .slice(0, 5)
+    .forEach(
+      game => {
+        parts.push(
+          `⚽ ${game.home} x ${game.away} às ${game.start}`
+        );
+      }
+    );
+
+  if (
+    !parts.length
+  ) {
+    parts.push(
+      "M ESPORTES • Futebol do Brasil e do mundo"
+    );
+  }
+
+  els.tickerTrack.textContent =
+    parts.join(
+      "   •   "
+    );
+}
+
+
+/* =========================================================
    HOME
 ========================================================= */
 
 function renderHome() {
-  els.todayCount.textContent =
-    `${state.games.length} jogo${
-      state.games.length === 1
-        ? ""
-        : "s"
-    }`;
+  if (
+    els.todayCount
+  ) {
+    els.todayCount.textContent =
+      `${state.games.length} jogos`;
+  }
 
   renderGames(
     els.homeGames,
     state.games,
-    "Nenhum jogo encontrado",
-    "Ainda não há partidas disponíveis para hoje."
+    "Nenhum jogo",
+    "Nenhuma partida disponível para hoje."
   );
 }
 
@@ -1178,18 +1807,18 @@ function renderHome() {
 ========================================================= */
 
 function renderLive() {
-  els.liveCount.textContent =
-    `${state.live.length} partida${
-      state.live.length === 1
-        ? ""
-        : "s"
-    }`;
+  if (
+    els.liveCount
+  ) {
+    els.liveCount.textContent =
+      `${state.live.length} partidas`;
+  }
 
   renderGames(
     els.liveGames,
     state.live,
-    "Nenhuma partida ao vivo",
-    "Quando algum jogo começar ele aparece aqui."
+    "Nenhum jogo ao vivo",
+    "Quando uma partida começar ela aparecerá aqui."
   );
 }
 
@@ -1200,24 +1829,25 @@ function renderLive() {
 
 function renderFavorites() {
   const games =
-    state.games.filter(game =>
-      state.favorites.has(
-        String(game.id)
-      )
+    state.games.filter(
+      game =>
+        state.favorites.has(
+          String(game.id)
+        )
     );
 
-  els.favoritesCount.textContent =
-    `${games.length} jogo${
-      games.length === 1
-        ? ""
-        : "s"
-    }`;
+  if (
+    els.favoritesCount
+  ) {
+    els.favoritesCount.textContent =
+      `${games.length} jogos`;
+  }
 
   renderGames(
     els.favoriteGames,
     games,
-    "Nenhum jogo escolhido",
-    "Toque na estrela para acompanhar somente os jogos escolhidos."
+    "Nenhum jogo acompanhado",
+    "Marque ★ em uma partida para receber seus alertas."
   );
 }
 
@@ -1227,59 +1857,214 @@ function renderFavorites() {
 ========================================================= */
 
 function renderLeagues() {
-  const groups =
-    groupGames(state.games);
-
-  state.leagues =
-    groups.map(group => ({
-      name: group.league,
-      country: group.country,
-      games: group.games.length
-    }));
-
-  els.leaguesCount.textContent =
-    `${state.leagues.length} liga${
-      state.leagues.length === 1
-        ? ""
-        : "s"
-    }`;
-
-  if (!state.leagues.length) {
-    els.leaguesList.innerHTML = `
-      <div class="empty-state">
-        Nenhuma liga encontrada.
-      </div>
-    `;
-
+  if (
+    !els.leaguesList
+  ) {
     return;
   }
 
+  const groups =
+    groupGames(
+      state.games
+    );
+
+  if (
+    els.leaguesCount
+  ) {
+    els.leaguesCount.textContent =
+      groups.length;
+  }
+
   els.leaguesList.innerHTML =
-    state.leagues
+    groups
       .map(
-        league => `
+        group => `
           <div class="league-card">
 
             <div>
 
               <strong>
-                ${escapeHtml(league.name)}
+                ${escapeHtml(
+                  group.league
+                )}
               </strong>
 
               <small>
-                ${escapeHtml(league.country)}
+                ${escapeHtml(
+                  group.country
+                )}
               </small>
 
             </div>
 
             <span class="count">
-              ${league.games}
+              ${group.games.length}
             </span>
 
           </div>
         `
       )
       .join("");
+}
+
+
+/* =========================================================
+   RÁDIOS
+========================================================= */
+
+function renderRadios() {
+  if (
+    !els.radioList
+  ) {
+    return;
+  }
+
+  els.radioList.innerHTML =
+    radios
+      .map(
+        (radio, index) => {
+          const available =
+            Boolean(
+              radio.stream
+            );
+
+          return `
+            <div class="radio-card">
+
+              <div class="radio-logo-fallback">
+                📻
+              </div>
+
+              <div class="radio-info">
+
+                <strong>
+                  ${escapeHtml(
+                    radio.name
+                  )}
+                </strong>
+
+                <span>
+                  ${escapeHtml(
+                    radio.city
+                  )}
+                </span>
+
+              </div>
+
+              <button
+                class="radio-play ${available ? "" : "source"}"
+                type="button"
+                data-radio-index="${index}"
+                ${available ? "" : "disabled"}
+              >
+                ${
+                  available
+                    ? "▶ OUVIR"
+                    : "EM BREVE"
+                }
+              </button>
+
+            </div>
+          `;
+        }
+      )
+      .join("");
+}
+
+async function playRadio(
+  index
+) {
+  const radio =
+    radios[index];
+
+  if (
+    !radio ||
+    !radio.stream
+  ) {
+    return;
+  }
+
+  try {
+    els.radioAudio.pause();
+
+    els.radioAudio.src =
+      radio.stream;
+
+    await els.radioAudio.play();
+
+    state.currentRadio =
+      radio;
+
+    if (
+      els.radioNowPlaying
+    ) {
+      els.radioNowPlaying
+        .classList
+        .remove(
+          "hidden"
+        );
+    }
+
+    if (
+      els.radioNowName
+    ) {
+      els.radioNowName.textContent =
+        radio.name;
+    }
+
+    if (
+      els.radioNowCity
+    ) {
+      els.radioNowCity.textContent =
+        radio.city;
+    }
+
+    if (
+      els.radioPauseBtn
+    ) {
+      els.radioPauseBtn.textContent =
+        "⏸";
+    }
+
+  } catch (
+    error
+  ) {
+    console.error(
+      "Erro ao tocar rádio:",
+      error
+    );
+
+    alert(
+      "Esta transmissão não respondeu. Vamos substituir por outro stream."
+    );
+  }
+}
+
+function toggleRadioPause() {
+  if (
+    !els.radioAudio ||
+    !state.currentRadio
+  ) {
+    return;
+  }
+
+  if (
+    els.radioAudio.paused
+  ) {
+    els.radioAudio
+      .play()
+      .catch(
+        console.error
+      );
+
+    els.radioPauseBtn.textContent =
+      "⏸";
+  } else {
+    els.radioAudio.pause();
+
+    els.radioPauseBtn.textContent =
+      "▶";
+  }
 }
 
 
@@ -1294,32 +2079,37 @@ function renderAll() {
   renderFavorites();
   renderLeagues();
   renderNews();
+  renderTicker();
+  renderRadios();
 }
 
 
 /* =========================================================
-   ATUALIZAR RELÓGIOS VISÍVEIS
+   RELÓGIOS VISÍVEIS
 ========================================================= */
 
 function updateVisibleClocks() {
   document
-    .querySelectorAll("[data-clock-id]")
-    .forEach(node => {
-      const id =
-        node.dataset.clockId;
+    .querySelectorAll(
+      "[data-clock-id]"
+    )
+    .forEach(
+      node => {
+        const game =
+          state.games.find(
+            item =>
+              String(item.id) ===
+              String(
+                node.dataset.clockId
+              )
+          );
 
-      const game =
-        state.games.find(
-          item =>
-            String(item.id) ===
-            String(id)
-        );
-
-      if (game) {
-        node.textContent =
-          getGameClock(game);
+        if (game) {
+          node.textContent =
+            getGameClock(game);
+        }
       }
-    });
+    );
 }
 
 
@@ -1332,140 +2122,59 @@ async function request(path) {
     await fetch(
       `${API_BASE}${path}`,
       {
-        headers: {
-          Accept: "application/json"
-        }
+        cache:
+          "no-store"
       }
     );
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     throw new Error(
-      `Erro ${response.status}`
+      `API respondeu ${response.status}`
     );
   }
 
   return response.json();
 }
 
-
-/* =========================================================
-   CARREGAR JOGOS
-========================================================= */
-
 async function loadGames() {
   const date =
     todayBR();
 
-  const paths = [
-    `/api/matches?date=${encodeURIComponent(date)}`,
-    `/api/rpf/candidatos?date=${encodeURIComponent(date)}`
-  ];
+  let data = null;
 
-  let lastError = null;
-
-  for (const path of paths) {
-    try {
-      const data =
-        await request(path);
-
-      const array =
-        extractArray(data);
-
-      if (array.length) {
-        state.games =
-          array.map(normalizeGame);
-
-        state.live =
-          state.games.filter(isLive);
-
-        syncAllClocks();
-
-        return;
-      }
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  state.games = [];
-  state.live = [];
-
-  if (lastError) {
-    throw lastError;
-  }
-}
-
-
-/* =========================================================
-   JORNADAS RPF
-========================================================= */
-
-async function loadJourneys() {
   try {
-    const data =
+    data =
       await request(
-        "/api/rpf/jornadas"
+        `/api/matches?date=${encodeURIComponent(date)}`
+      );
+  } catch (
+    error
+  ) {
+    console.warn(
+      "Endpoint principal falhou. Tentando candidatos.",
+      error
+    );
+
+    data =
+      await request(
+        `/api/rpf/candidatos?date=${encodeURIComponent(date)}`
+      );
+  }
+
+  state.games =
+    extractArray(data)
+      .map(
+        normalizeGame
       );
 
-    state.journeys =
-      extractArray(data);
-  } catch {
-    state.journeys = [];
-  }
-}
+  state.live =
+    state.games.filter(
+      isLive
+    );
 
-
-/* =========================================================
-   ATUALIZAÇÃO
-========================================================= */
-
-async function refreshAll(
-  showLoading = true
-) {
-  try {
-    if (showLoading) {
-      els.refreshBtn.textContent =
-        "…";
-
-      els.refreshBtn.disabled =
-        true;
-    }
-
-    await Promise.all([
-      loadGames(),
-      loadJourneys()
-    ]);
-
-    createAutomaticNews();
-
-    renderAll();
-
-    checkFavoriteNotifications();
-  } catch (error) {
-    console.error(error);
-
-    if (els.homeGames) {
-      els.homeGames.innerHTML = `
-        <div class="empty-state">
-
-          <strong>
-            Não foi possível carregar os jogos
-          </strong>
-
-          <span>
-            ${escapeHtml(error.message)}
-          </span>
-
-        </div>
-      `;
-    }
-  } finally {
-    els.refreshBtn.textContent =
-      "↻";
-
-    els.refreshBtn.disabled =
-      false;
-  }
+  syncAllClocks();
 }
 
 
@@ -1477,13 +2186,16 @@ function saveFavorites() {
   localStorage.setItem(
     "m-esportes-favorites",
     JSON.stringify(
-      [...state.favorites]
+      [
+        ...state.favorites
+      ]
     )
   );
 }
 
 function toggleFavorite(id) {
-  id = String(id);
+  id =
+    String(id);
 
   if (
     state.favorites.has(id)
@@ -1503,56 +2215,15 @@ function toggleFavorite(id) {
    NOTIFICAÇÕES
 ========================================================= */
 
-function saveNotified() {
-  localStorage.setItem(
-    "m-esportes-notified",
-    JSON.stringify(
-      state.notified
-    )
-  );
-}
-
-function notificationKey(
-  game,
-  event
-) {
-  return `${game.id}:${event}`;
-}
-
-function alreadyNotified(
-  game,
-  event
-) {
-  return Boolean(
-    state.notified[
-      notificationKey(
-        game,
-        event
-      )
-    ]
-  );
-}
-
-function markNotified(
-  game,
-  event
-) {
-  state.notified[
-    notificationKey(
-      game,
-      event
-    )
-  ] = Date.now();
-
-  saveNotified();
-}
-
 function notify(
   title,
   body
 ) {
   if (
-    !("Notification" in window)
+    !(
+      "Notification"
+      in window
+    )
   ) {
     return;
   }
@@ -1564,89 +2235,35 @@ function notify(
     return;
   }
 
-  new Notification(
-    title,
-    {
-      body
-    }
-  );
-}
-
-function checkFavoriteNotifications() {
-  for (const game of state.games) {
-    if (
-      !state.favorites.has(
-        String(game.id)
-      )
-    ) {
-      continue;
-    }
-
-    const fixture =
-      `${game.home} x ${game.away}`;
-
-    if (
-      game.status === "1H" &&
-      !alreadyNotified(
-        game,
-        "start"
-      )
-    ) {
-      notify(
-        "⚽ JOGO INICIADO",
-        fixture
-      );
-
-      markNotified(
-        game,
-        "start"
-      );
-    }
-
-    if (
-      game.status === "HT" &&
-      !alreadyNotified(
-        game,
-        "halftime"
-      )
-    ) {
-      notify(
-        "⏸️ INTERVALO",
-        `${fixture} • ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)}`
-      );
-
-      markNotified(
-        game,
-        "halftime"
-      );
-    }
-
-    if (
-      game.status === "FT" &&
-      !alreadyNotified(
-        game,
-        "finish"
-      )
-    ) {
-      notify(
-        "🏁 FIM DE JOGO",
-        `${fixture} • ${scoreValue(game.hs, game)} x ${scoreValue(game.as, game)}`
-      );
-
-      markNotified(
-        game,
-        "finish"
-      );
-    }
+  try {
+    new Notification(
+      title,
+      {
+        body,
+        icon:
+          "./icon-192.png"
+      }
+    );
+  } catch (
+    error
+  ) {
+    console.warn(
+      error
+    );
   }
 }
 
 async function requestNotifications() {
+  unlockGoalAudio();
+
   if (
-    !("Notification" in window)
+    !(
+      "Notification"
+      in window
+    )
   ) {
     alert(
-      "Este navegador não oferece notificações."
+      "Seu navegador não suporta notificações."
     );
 
     return;
@@ -1657,13 +2274,192 @@ async function requestNotifications() {
       .requestPermission();
 
   if (
-    permission === "granted"
+    permission ===
+    "granted"
   ) {
-    els.notificationBtn.textContent =
-      "NOTIFICAÇÕES ATIVADAS";
+    if (
+      els.notificationBtn
+    ) {
+      els.notificationBtn.textContent =
+        "NOTIFICAÇÕES ATIVADAS";
+    }
   } else {
-    els.notificationBtn.textContent =
-      "PERMISSÃO NÃO CONCEDIDA";
+    if (
+      els.notificationBtn
+    ) {
+      els.notificationBtn.textContent =
+        "NOTIFICAÇÕES BLOQUEADAS";
+    }
+  }
+}
+
+
+/* =========================================================
+   ALERTAS
+========================================================= */
+
+function saveAlertSettings() {
+  alertSettings.goal =
+    Boolean(
+      els.alertGoal?.checked
+    );
+
+  alertSettings.start =
+    Boolean(
+      els.alertStart?.checked
+    );
+
+  alertSettings.halftime =
+    Boolean(
+      els.alertHalftime?.checked
+    );
+
+  alertSettings.final =
+    Boolean(
+      els.alertFinal?.checked
+    );
+
+  localStorage.setItem(
+    "m-esportes-alerts",
+    JSON.stringify(
+      alertSettings
+    )
+  );
+}
+
+function loadAlertControls() {
+  if (
+    els.alertGoal
+  ) {
+    els.alertGoal.checked =
+      alertSettings.goal;
+  }
+
+  if (
+    els.alertStart
+  ) {
+    els.alertStart.checked =
+      alertSettings.start;
+  }
+
+  if (
+    els.alertHalftime
+  ) {
+    els.alertHalftime.checked =
+      alertSettings.halftime;
+  }
+
+  if (
+    els.alertFinal
+  ) {
+    els.alertFinal.checked =
+      alertSettings.final;
+  }
+}
+
+
+/* =========================================================
+   SERVICE WORKER
+========================================================= */
+
+async function registerServiceWorker() {
+  if (
+    !(
+      "serviceWorker"
+      in navigator
+    )
+  ) {
+    return null;
+  }
+
+  try {
+    const registration =
+      await navigator
+        .serviceWorker
+        .register(
+          "./sw.js",
+          {
+            scope:
+              "./"
+          }
+        );
+
+    state.serviceWorkerRegistration =
+      registration;
+
+    return registration;
+
+  } catch (
+    error
+  ) {
+    console.warn(
+      "Service Worker:",
+      error
+    );
+
+    return null;
+  }
+}
+
+
+/* =========================================================
+   ATUALIZAÇÃO
+========================================================= */
+
+async function refreshAll(
+  showLoading = true
+) {
+  try {
+    if (
+      showLoading &&
+      els.refreshBtn
+    ) {
+      els.refreshBtn.disabled =
+        true;
+
+      els.refreshBtn.textContent =
+        "…";
+    }
+
+    await loadGames();
+
+    if (
+      !state.scoreSystemStarted
+    ) {
+      initializeScoreMemory();
+    } else {
+      checkGoals();
+    }
+
+    createAutomaticNews();
+
+    renderAll();
+
+  } catch (
+    error
+  ) {
+    console.error(
+      "Erro ao atualizar M Esportes:",
+      error
+    );
+
+    if (
+      els.tickerTrack
+    ) {
+      els.tickerTrack.textContent =
+        "M ESPORTES • Não foi possível atualizar os jogos agora.";
+    }
+
+  } finally {
+    if (
+      els.refreshBtn
+    ) {
+      els.refreshBtn.disabled =
+        false;
+
+      els.refreshBtn.textContent =
+        "↻";
+    }
   }
 }
 
@@ -1674,45 +2470,64 @@ async function requestNotifications() {
 
 function setupNavigation() {
   document
-    .querySelectorAll(".nav-item")
-    .forEach(button => {
-      button.addEventListener(
-        "click",
-        () => {
-          const page =
-            button.dataset.page;
+    .querySelectorAll(
+      ".nav-item"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            unlockGoalAudio();
 
-          document
-            .querySelectorAll(".nav-item")
-            .forEach(item =>
-              item.classList.remove(
-                "active"
+            const page =
+              button.dataset.page;
+
+            document
+              .querySelectorAll(
+                ".nav-item"
               )
-            );
+              .forEach(
+                item =>
+                  item.classList.remove(
+                    "active"
+                  )
+              );
 
-          document
-            .querySelectorAll(".page")
-            .forEach(item =>
-              item.classList.remove(
-                "active"
+            document
+              .querySelectorAll(
+                ".page"
               )
-            );
+              .forEach(
+                item =>
+                  item.classList.remove(
+                    "active"
+                  )
+              );
 
-          button.classList.add(
-            "active"
-          );
+            button
+              .classList
+              .add(
+                "active"
+              );
 
-          document
-            .getElementById(
-              `page-${page}`
-            )
-            ?.classList
-            .add(
-              "active"
-            );
-        }
-      );
-    });
+            document
+              .getElementById(
+                `page-${page}`
+              )
+              ?.classList
+              .add(
+                "active"
+              );
+
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth"
+            });
+          }
+        );
+      }
+    );
 }
 
 
@@ -1723,54 +2538,125 @@ function setupNavigation() {
 document.addEventListener(
   "click",
   event => {
-    const button =
+    unlockGoalAudio();
+
+    const favoriteButton =
       event.target.closest(
         "[data-favorite]"
       );
 
-    if (button) {
+    if (
+      favoriteButton
+    ) {
       toggleFavorite(
-        button.dataset.favorite
+        favoriteButton
+          .dataset
+          .favorite
+      );
+
+      return;
+    }
+
+    const radioButton =
+      event.target.closest(
+        "[data-radio-index]"
+      );
+
+    if (
+      radioButton &&
+      !radioButton.disabled
+    ) {
+      playRadio(
+        Number(
+          radioButton
+            .dataset
+            .radioIndex
+        )
       );
     }
   }
 );
 
-els.refreshBtn.addEventListener(
-  "click",
-  () =>
-    refreshAll(true)
-);
 
-els.notificationBtn.addEventListener(
-  "click",
-  requestNotifications
-);
+/* =========================================================
+   BOTÕES
+========================================================= */
+
+if (
+  els.refreshBtn
+) {
+  els.refreshBtn.addEventListener(
+    "click",
+    () =>
+      refreshAll(true)
+  );
+}
+
+if (
+  els.notificationBtn
+) {
+  els.notificationBtn.addEventListener(
+    "click",
+    requestNotifications
+  );
+}
+
+if (
+  els.radioPauseBtn
+) {
+  els.radioPauseBtn.addEventListener(
+    "click",
+    toggleRadioPause
+  );
+}
+
+
+/* =========================================================
+   CHECKBOXES
+========================================================= */
+
+[
+  els.alertGoal,
+  els.alertStart,
+  els.alertHalftime,
+  els.alertFinal
+]
+  .filter(Boolean)
+  .forEach(
+    input => {
+      input.addEventListener(
+        "change",
+        saveAlertSettings
+      );
+    }
+  );
 
 
 /* =========================================================
    INICIAR
 ========================================================= */
 
+loadAlertControls();
+
 setupNavigation();
+
+registerServiceWorker();
+
+renderRadios();
 
 refreshAll(true);
 
 
-/*
-  Relógio visual atualiza
-  a cada segundo.
-*/
+/* relógio visual */
+
 setInterval(
   updateVisibleClocks,
   1000
 );
 
 
-/*
-  API atualiza novamente
-  a cada 20 segundos.
-*/
+/* atualização dos dados */
+
 setInterval(
   () =>
     refreshAll(false),
