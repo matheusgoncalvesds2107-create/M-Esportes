@@ -1418,7 +1418,28 @@ const PRE_GAME_SPECIAL_TEAMS = [
   "chelsea",
   "como"
 ];
-
+const PRE_GAME_SERIE_B_TEAMS = [
+  "america mineiro",
+  "athletic",
+  "atletico goianiense",
+  "avai",
+  "botafogo sp",
+  "ceara",
+  "crb",
+  "criciuma",
+  "cuiaba",
+  "fortaleza",
+  "goias",
+  "juventude",
+  "londrina",
+  "nautico",
+  "novorizontino",
+  "operario pr",
+  "ponte preta",
+  "sao bernardo",
+  "sport",
+  "vila nova"
+];
 const PRE_GAME_BIG_TEAMS = [
   "flamengo",
   "palmeiras",
@@ -1625,6 +1646,15 @@ function gameImportance(game) {
     ) {
       points += 22;
     }
+
+    if (
+      PRE_GAME_SERIE_B_TEAMS.some(
+        target =>
+          teamMatches(team, target)
+      )
+    ) {
+      points += 38;
+    }
   }
 
   if (isBrazilianClassic(game)) {
@@ -1632,7 +1662,7 @@ function gameImportance(game) {
   }
 
   return points;
-}
+       }
 
 function gameKickoffMs(game) {
   if (game.date) {
