@@ -1,4 +1,4 @@
-const CACHE_NAME = "m-esportes-v3";
+const CACHE_NAME = "m-esportes-v4";
 
 const APP_SHELL = [
   "./",
