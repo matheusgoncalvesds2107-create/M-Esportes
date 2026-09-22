@@ -1623,11 +1623,24 @@ function gameImportance(game) {
   let points =
     competitionImportance(game);
 
+  const league =
+    normalizeText(game.league);
+
+  const country =
+    normalizeText(game.country);
+
+  const home =
+    normalizeText(game.home);
+
+  const away =
+    normalizeText(game.away);
+
   const teams = [
     game.home,
     game.away
   ];
 
+  /* Chelsea e Como */
   for (const team of teams) {
     if (
       PRE_GAME_SPECIAL_TEAMS.some(
@@ -1635,7 +1648,7 @@ function gameImportance(game) {
           teamMatches(team, target)
       )
     ) {
-      points += 90;
+      points += 200;
     }
 
     if (
@@ -1644,7 +1657,7 @@ function gameImportance(game) {
           teamMatches(team, target)
       )
     ) {
-      points += 22;
+      points += 35;
     }
 
     if (
@@ -1653,16 +1666,62 @@ function gameImportance(game) {
           teamMatches(team, target)
       )
     ) {
-      points += 38;
+      points += 90;
     }
   }
 
-  if (isBrazilianClassic(game)) {
-    points += 155;
+  /* Clássico brasileiro */
+  if (
+    isBrazilianClassic(game)
+  ) {
+    points += 250;
+  }
+
+  /* Qualquer jogo brasileiro */
+  if (
+    country.includes("brasil") ||
+    league.includes("brasil") ||
+    league.includes("brasileirao") ||
+    league.includes("serie b") ||
+    league.includes("serie c") ||
+    league.includes("gauchao")
+  ) {
+    points += 70;
+  }
+
+  /* Evita liga inglesa pequena como destaque */
+  if (
+    (
+      country.includes("inglaterra") ||
+      country.includes("england")
+    ) &&
+    !league.includes("premier")
+  ) {
+    points -= 120;
+  }
+
+  /* Bloqueia clubes ingleses pequenos que apareceram */
+  const weakEnglish =
+    [
+      "dorking",
+      "southall",
+      "crowborough",
+      "hampton",
+      "richmond"
+    ];
+
+  if (
+    weakEnglish.some(
+      name =>
+        home.includes(name) ||
+        away.includes(name)
+    )
+  ) {
+    points -= 300;
   }
 
   return points;
-       }
+}
 
 function gameKickoffMs(game) {
   if (game.date) {
