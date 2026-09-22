@@ -1,10 +1,11 @@
-const CACHE_NAME = "m-esportes-v4";
+const CACHE_NAME = "m-esportes-v5";
 
 const APP_SHELL = [
   "./",
   "./index.html",
   "./src.css",
   "./src.js",
+  "./push.js",
   "./manifest.json",
   "./audio/gol-rpf.mp3"
 ];
