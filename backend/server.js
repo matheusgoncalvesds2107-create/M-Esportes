@@ -2353,7 +2353,41 @@ app.post(
     });
   }
 );
+app.get(
+  '/api/push/test-now',
+  async (req, res) => {
+    const payload =
+      JSON.stringify({
+        title: 'M ESPORTES',
+        body: '🔔 Push funcionando com o site fechado!',
+        url: 'https://matheusgoncalvesds2107-create.github.io/M-Esportes/',
+        tag: 'm-esportes-test'
+      });
 
+    let sent = 0;
+    let failed = 0;
+
+    for (
+      const subscription
+      of pushSubscriptions.values()
+    ) {
+      try {
+        await webpush.sendNotification(
+          subscription,
+          payload
+        );
+
+        sent++;
+      } catch (error) {
+        failed++;
+
+        console.error(
+          'Teste Push:',
+          error.message
+        );
+      }
+    }
+     
 /* =========================================================
    RAIZ
 ========================================================= */
