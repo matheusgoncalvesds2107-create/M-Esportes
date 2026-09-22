@@ -251,19 +251,18 @@ const radios = [
     ],
     stream: null
   },
-
-  {
-    name: "Rádio Universidade",
-    city: "Pelotas - RS",
-    search: "Radio Universidade Pelotas",
-    aliases: [
-      "radio universidade pelotas",
-      "universidade pelotas",
-      "ucpel"
-    ],
-    stream: null
-  },
-
+{
+  name: "Rádio Pelotense 99.5",
+  city: "Pelotas - RS",
+  search: "Radio Pelotense 99.5 Pelotas",
+  aliases: [
+    "radio pelotense",
+    "pelotense 99.5",
+    "pelotense pelotas",
+    "pelotense fm"
+  ],
+  stream: null
+},
   {
     name: "Planalto News",
     city: "Passo Fundo - RS",
