@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import Parser from 'rss-parser';
+import webpush from 'web-push';
 
 const app = express();
 const parser = new Parser();
@@ -9,6 +10,33 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
+/* =========================================================
+   WEB PUSH / VAPID
+========================================================= */
+
+const VAPID_PUBLIC_KEY =
+  process.env.VAPID_PUBLIC_KEY || '';
+
+const VAPID_PRIVATE_KEY =
+  process.env.VAPID_PRIVATE_KEY || '';
+
+/*
+  Assinaturas ficam em memória nesta primeira versão.
+  Depois podemos persistir em banco para sobreviver a redeploy/restart.
+*/
+const pushSubscriptions = new Map();
+
+if (
+  VAPID_PUBLIC_KEY &&
+  VAPID_PRIVATE_KEY
+) {
+  webpush.setVapidDetails(
+    'mailto:mesportes@example.com',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+}
 
 /* =========================================================
    FONTES
@@ -2179,6 +2207,154 @@ app.get(
 );
 
 /* =========================================================
+   WEB PUSH
+========================================================= */
+
+app.get(
+  '/api/push/public-key',
+  (req, res) => {
+    res.json({
+      ok: true,
+      configured: Boolean(
+        VAPID_PUBLIC_KEY &&
+        VAPID_PRIVATE_KEY
+      ),
+      publicKey:
+        VAPID_PUBLIC_KEY || null
+    });
+  }
+);
+
+app.post(
+  '/api/push/subscribe',
+  (req, res) => {
+    const subscription =
+      req.body?.subscription ||
+      req.body;
+
+    if (
+      !subscription?.endpoint ||
+      !subscription?.keys?.p256dh ||
+      !subscription?.keys?.auth
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Subscription inválida'
+      });
+    }
+
+    pushSubscriptions.set(
+      subscription.endpoint,
+      subscription
+    );
+
+    res.json({
+      ok: true,
+      subscriptions:
+        pushSubscriptions.size
+    });
+  }
+);
+
+app.post(
+  '/api/push/unsubscribe',
+  (req, res) => {
+    const endpoint =
+      req.body?.endpoint ||
+      req.body?.subscription?.endpoint;
+
+    if (endpoint) {
+      pushSubscriptions.delete(
+        endpoint
+      );
+    }
+
+    res.json({
+      ok: true,
+      subscriptions:
+        pushSubscriptions.size
+    });
+  }
+);
+
+app.post(
+  '/api/push/test',
+  async (req, res) => {
+    if (
+      !VAPID_PUBLIC_KEY ||
+      !VAPID_PRIVATE_KEY
+    ) {
+      return res.status(503).json({
+        ok: false,
+        error: 'VAPID não configurado'
+      });
+    }
+
+    const payload =
+      JSON.stringify({
+        title: 'M ESPORTES',
+        body:
+          req.body?.body ||
+          'Push funcionando com o site fechado 🔔',
+        url:
+          req.body?.url ||
+          './',
+        tag: 'm-esportes-test'
+      });
+
+    let sent = 0;
+    let failed = 0;
+    let removed = 0;
+
+    for (
+      const [
+        endpoint,
+        subscription
+      ]
+      of pushSubscriptions
+    ) {
+      try {
+        await webpush.sendNotification(
+          subscription,
+          payload
+        );
+
+        sent++;
+
+      } catch (error) {
+        failed++;
+
+        if (
+          error.statusCode === 404 ||
+          error.statusCode === 410
+        ) {
+          pushSubscriptions.delete(
+            endpoint
+          );
+
+          removed++;
+        }
+
+        console.error(
+          'Web Push:',
+          error.statusCode || '',
+          error.message
+        );
+      }
+    }
+
+    res.json({
+      ok: true,
+      sent,
+      failed,
+      removed,
+      subscriptions:
+        pushSubscriptions.size
+    });
+  }
+);
+
+/* =========================================================
    RAIZ
 ========================================================= */
 
@@ -2209,7 +2385,11 @@ app.get(
         '/api/fgf/a2',
         '/api/fgf/serie-b',
         '/api/fgf/copa-fgf',
-        '/api/news'
+        '/api/news',
+        '/api/push/public-key',
+        '/api/push/subscribe',
+        '/api/push/unsubscribe',
+        '/api/push/test'
       ]
     });
   }
