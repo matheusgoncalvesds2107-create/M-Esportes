@@ -1,323 +1,668 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  >
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
 
-  <meta name="theme-color" content="#050505">
+  <meta
+    name="theme-color"
+    content="#050505"
+  />
 
   <title>M Esportes</title>
 
-  <link rel="stylesheet" href="./src.css">
+  <link
+    rel="manifest"
+    href="./manifest.json"
+  />
+
+  <link
+    rel="stylesheet"
+    href="./src.css"
+  />
 </head>
 
 <body>
 
-<div class="app">
+  <div class="app-shell">
 
-  <header class="topbar">
+    <!-- =========================
+         TOPO
+    ========================== -->
+    <header class="topbar">
 
-    <div>
       <div class="brand">
-        ⚽ M ESPORTES
+
+        <div class="brand-icon">
+          ⚽
+        </div>
+
+        <div class="brand-text">
+
+          <strong>
+            M ESPORTES
+          </strong>
+
+          <small>
+            FUTEBOL • PLACAR • RÁDIO
+          </small>
+
+        </div>
+
       </div>
 
-      <div class="subtitle">
-        FUTEBOL • PLACAR • NOTÍCIAS
-      </div>
-    </div>
+      <button
+        id="refreshBtn"
+        class="icon-button"
+        type="button"
+        aria-label="Atualizar"
+      >
+        ↻
+      </button>
 
-    <button
-      id="refreshBtn"
-      class="icon-btn"
-      type="button"
-    >
-      ↻
-    </button>
+    </header>
 
-  </header>
 
-  <main class="content">
+    <!-- =========================
+         CONTEÚDO
+    ========================== -->
+    <main class="main-content">
 
-    <!-- HOME -->
 
-    <section
-      id="page-home"
-      class="page active"
-    >
+      <!-- =========================
+           HOME
+      ========================== -->
+      <section
+        id="page-home"
+        class="page active"
+      >
 
-      <div class="hero">
+        <section class="hero-card">
 
-        <div>
-
-          <div class="hero-label">
+          <span class="hero-kicker">
             🔴 M ESPORTES 3 MINUTOS
-          </div>
+          </span>
 
           <h1>
             JORNAL ESPORTIVO
           </h1>
 
           <p>
-            Futebol do Brasil e do mundo em um só lugar.
+            Futebol do Brasil e do mundo
+            em um só lugar.
           </p>
 
-        </div>
-
-      </div>
+        </section>
 
 
-      <!-- ESQUENTANDO O JOGO -->
+        <section class="section-block">
 
-      <div class="section-head">
+          <div class="section-title-row">
 
-        <div>
-          <span class="news-tag">
-            M ESPORTES 3 MINUTOS APRESENTA
-          </span>
+            <div>
 
-          <h2>
-            ESQUENTANDO O JOGO
-          </h2>
-        </div>
+              <span class="section-label">
+                DESTAQUE
+              </span>
 
-        <span>
-          PRÉ-JOGO
-        </span>
+              <h2>
+                ESQUENTANDO O JOGO
+              </h2>
 
-      </div>
+            </div>
+
+          </div>
+
+          <div
+            id="pregameCard"
+            class="pregame-card"
+          >
+            Carregando destaque...
+          </div>
+
+        </section>
 
 
-      <div
-        id="pregameCard"
-        class="pregame-card"
+        <section class="section-block">
+
+          <div class="section-title-row">
+
+            <div>
+
+              <span class="section-label live-label">
+                🔴 AGORA
+              </span>
+
+              <h2>
+                M ESPORTES AGORA
+              </h2>
+
+            </div>
+
+          </div>
+
+          <div
+            id="newsList"
+            class="news-list"
+          ></div>
+
+        </section>
+
+
+        <section class="section-block">
+
+          <div class="section-title-row">
+
+            <div>
+
+              <span class="section-label">
+                PARTIDAS
+              </span>
+
+              <h2>
+                Jogos de hoje
+              </h2>
+
+            </div>
+
+            <span
+              id="todayCount"
+              class="section-counter"
+            >
+              0 jogos
+            </span>
+
+          </div>
+
+          <div
+            id="homeGames"
+            class="games-list"
+          ></div>
+
+        </section>
+
+      </section>
+
+
+      <!-- =========================
+           AO VIVO
+      ========================== -->
+      <section
+        id="page-live"
+        class="page"
       >
 
-        <div class="pregame-loading">
-          Carregando destaque do dia...
-        </div>
+        <div class="page-heading">
 
-      </div>
+          <div>
 
+            <span class="section-label live-label">
+              🔴 TEMPO REAL
+            </span>
 
-      <!-- M ESPORTES AGORA -->
+            <h2>
+              Ao vivo
+            </h2>
 
-      <div class="section-head">
+          </div>
 
-        <div>
-
-          <span class="news-tag">
-            CENTRAL DE NOTÍCIAS
+          <span
+            id="liveCount"
+            class="section-counter"
+          >
+            0 partidas
           </span>
 
-          <h2>
-            M ESPORTES AGORA
-          </h2>
+        </div>
+
+        <div
+          id="liveGames"
+          class="games-list"
+        ></div>
+
+      </section>
+
+
+      <!-- =========================
+           RÁDIOS
+      ========================== -->
+      <section
+        id="page-radios"
+        class="page"
+      >
+
+        <div class="page-heading">
+
+          <div>
+
+            <span class="section-label">
+              TRANSMISSÃO
+            </span>
+
+            <h2>
+              Rádios
+            </h2>
+
+          </div>
+
+          <span class="section-counter">
+            40 emissoras
+          </span>
 
         </div>
 
-        <span>
-          ATUALIZAÇÃO
-        </span>
 
-      </div>
-
-
-      <div
-        id="newsList"
-        class="news-list"
-      ></div>
-
-
-      <!-- JOGOS -->
-
-      <div class="section-head">
-
-        <h2>
-          Jogos de hoje
-        </h2>
-
-        <span id="todayCount">
-          0 jogos
-        </span>
-
-      </div>
-
-
-      <div
-        id="homeGames"
-        class="games-list"
-      ></div>
-
-    </section>
-
-
-    <!-- AO VIVO -->
-
-    <section
-      id="page-live"
-      class="page"
-    >
-
-      <div class="section-head page-title">
-
-        <h2>
-          🔴 Ao vivo
-        </h2>
-
-        <span id="liveCount">
-          0 partidas
-        </span>
-
-      </div>
-
-      <div
-        id="liveGames"
-        class="games-list"
-      ></div>
-
-    </section>
-
-
-    <!-- FAVORITOS -->
-
-    <section
-      id="page-favorites"
-      class="page"
-    >
-
-      <div class="section-head page-title">
-
-        <h2>
-          ⭐ Favoritos
-        </h2>
-
-        <span id="favoritesCount">
-          0 jogos
-        </span>
-
-      </div>
-
-
-      <div class="info-card">
-
-        <strong>
-          Notificações somente dos jogos escolhidos
-        </strong>
-
-        <p>
-          Marque a estrela no jogo que você quer acompanhar.
-        </p>
-
-        <p>
-          O M Esportes avisa somente no início,
-          intervalo e fim desses jogos.
-        </p>
-
-        <button
-          id="notificationBtn"
-          class="primary-btn"
-          type="button"
+        <div
+          id="radioNowPlaying"
+          class="radio-now-playing hidden"
         >
-          ATIVAR NOTIFICAÇÕES
-        </button>
+
+          <div class="radio-now-icon">
+            📻
+          </div>
+
+          <div class="radio-now-info">
+
+            <small>
+              TOCANDO AGORA
+            </small>
+
+            <strong id="radioNowName">
+              Rádio
+            </strong>
+
+            <span id="radioNowCity">
+              Brasil
+            </span>
+
+          </div>
+
+          <button
+            id="radioPauseBtn"
+            class="radio-control-button"
+            type="button"
+          >
+            ⏸
+          </button>
+
+        </div>
+
+
+        <div
+          id="radioList"
+          class="radio-list"
+        ></div>
+
+      </section>
+
+
+      <!-- =========================
+           LIGAS
+      ========================== -->
+      <section
+        id="page-leagues"
+        class="page"
+      >
+
+        <div class="page-heading">
+
+          <div>
+
+            <span class="section-label">
+              CAMPEONATOS
+            </span>
+
+            <h2>
+              Ligas
+            </h2>
+
+          </div>
+
+          <span
+            id="leaguesCount"
+            class="section-counter"
+          >
+            0
+          </span>
+
+        </div>
+
+        <div
+          id="leaguesList"
+          class="leagues-list"
+        ></div>
+
+      </section>
+
+
+      <!-- =========================
+           ALERTAS
+      ========================== -->
+      <section
+        id="page-favorites"
+        class="page"
+      >
+
+        <div class="page-heading">
+
+          <div>
+
+            <span class="section-label">
+              NOTIFICAÇÕES
+            </span>
+
+            <h2>
+              Alertas
+            </h2>
+
+          </div>
+
+          <span
+            id="favoritesCount"
+            class="section-counter"
+          >
+            0 jogos
+          </span>
+
+        </div>
+
+
+        <div class="alerts-card">
+
+          <div class="alerts-card-head">
+
+            <div class="alerts-icon">
+              🔔
+            </div>
+
+            <div>
+
+              <strong>
+                Alertas do jogo
+              </strong>
+
+              <p>
+                Escolha quais eventos
+                você quer receber.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <label class="alert-option">
+
+            <div>
+
+              <strong>
+                ⚽ Gol
+              </strong>
+
+              <span>
+                Avisar quando sair gol
+              </span>
+
+            </div>
+
+            <input
+              id="alertGoal"
+              type="checkbox"
+              checked
+            />
+
+            <span class="switch"></span>
+
+          </label>
+
+
+          <label class="alert-option">
+
+            <div>
+
+              <strong>
+                ▶ Início
+              </strong>
+
+              <span>
+                Avisar quando a partida começar
+              </span>
+
+            </div>
+
+            <input
+              id="alertStart"
+              type="checkbox"
+              checked
+            />
+
+            <span class="switch"></span>
+
+          </label>
+
+
+          <label class="alert-option">
+
+            <div>
+
+              <strong>
+                ⏸ Intervalo
+              </strong>
+
+              <span>
+                Avisar no fim do primeiro tempo
+              </span>
+
+            </div>
+
+            <input
+              id="alertHalftime"
+              type="checkbox"
+              checked
+            />
+
+            <span class="switch"></span>
+
+          </label>
+
+
+          <label class="alert-option">
+
+            <div>
+
+              <strong>
+                🏁 Fim de jogo
+              </strong>
+
+              <span>
+                Avisar quando a partida terminar
+              </span>
+
+            </div>
+
+            <input
+              id="alertFinal"
+              type="checkbox"
+              checked
+            />
+
+            <span class="switch"></span>
+
+          </label>
+
+
+          <button
+            id="notificationBtn"
+            class="primary-button"
+            type="button"
+          >
+            ATIVAR NOTIFICAÇÕES
+          </button>
+
+        </div>
+
+
+        <section class="section-block">
+
+          <div class="section-title-row">
+
+            <div>
+
+              <span class="section-label">
+                SEUS JOGOS
+              </span>
+
+              <h2>
+                Favoritos
+              </h2>
+
+            </div>
+
+          </div>
+
+          <div
+            id="favoriteGames"
+            class="games-list"
+          ></div>
+
+        </section>
+
+      </section>
+
+    </main>
+
+
+    <!-- =========================
+         PLAYER DE RÁDIO
+    ========================== -->
+    <audio
+      id="radioAudio"
+      preload="none"
+    ></audio>
+
+
+    <!-- =========================
+         M ESPORTES AGORA
+    ========================== -->
+    <div class="breaking-ticker">
+
+      <div class="ticker-brand">
+        M ESPORTES AGORA
+      </div>
+
+      <div class="ticker-window">
+
+        <div
+          id="tickerTrack"
+          class="ticker-track"
+        >
+          Carregando informações...
+        </div>
 
       </div>
 
-
-      <div
-        id="favoriteGames"
-        class="games-list"
-      ></div>
-
-    </section>
+    </div>
 
 
-    <!-- LIGAS -->
+    <!-- =========================
+         MENU INFERIOR
+    ========================== -->
+    <nav class="bottom-nav">
 
-    <section
-      id="page-leagues"
-      class="page"
-    >
+      <button
+        class="nav-item active"
+        data-page="home"
+        type="button"
+      >
 
-      <div class="section-head page-title">
-
-        <h2>
-          🏆 Tabelas e Ligas
-        </h2>
-
-        <span id="leaguesCount">
-          0 ligas
+        <span class="nav-icon">
+          ⌂
         </span>
 
-      </div>
+        <small>
+          Home
+        </small>
 
-      <div
-        id="leaguesList"
-        class="leagues-list"
-      ></div>
-
-    </section>
-
-  </main>
+      </button>
 
 
-  <!-- MENU -->
+      <button
+        class="nav-item"
+        data-page="live"
+        type="button"
+      >
 
-  <nav class="bottom-nav">
+        <span class="nav-icon live-dot">
+          ●
+        </span>
 
-    <button
-      class="nav-item active"
-      data-page="home"
-      type="button"
-    >
-      <span class="nav-icon">⌂</span>
-      <span>Home</span>
-    </button>
+        <small>
+          Ao vivo
+        </small>
 
-
-    <button
-      class="nav-item"
-      data-page="live"
-      type="button"
-    >
-      <span class="nav-icon live-dot">●</span>
-      <span>Ao vivo</span>
-    </button>
+      </button>
 
 
-    <button
-      class="nav-item"
-      data-page="favorites"
-      type="button"
-    >
-      <span class="nav-icon">★</span>
-      <span>Favoritos</span>
-    </button>
+      <button
+        class="nav-item"
+        data-page="radios"
+        type="button"
+      >
+
+        <span class="nav-icon">
+          📻
+        </span>
+
+        <small>
+          Rádios
+        </small>
+
+      </button>
 
 
-    <button
-      class="nav-item"
-      data-page="leagues"
-      type="button"
-    >
-      <span class="nav-icon">▦</span>
-      <span>Ligas</span>
-    </button>
+      <button
+        class="nav-item"
+        data-page="leagues"
+        type="button"
+      >
 
-  </nav>
+        <span class="nav-icon">
+          🏆
+        </span>
 
-</div>
+        <small>
+          Ligas
+        </small>
+
+      </button>
 
 
-<script
-  type="module"
-  src="./src.js"
-></script>
+      <button
+        class="nav-item"
+        data-page="favorites"
+        type="button"
+      >
+
+        <span class="nav-icon">
+          🔔
+        </span>
+
+        <small>
+          Alertas
+        </small>
+
+      </button>
+
+    </nav>
+
+  </div>
+
+
+  <script src="./src.js"></script>
 
 </body>
 </html>
