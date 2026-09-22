@@ -3,9 +3,7 @@
    PLACAR + 40 RÁDIOS + ALERTAS
 ========================================================= */
 
-const API_BASE =
-  "https://radioplacar-api.onrender.com";
-
+const API_BASE = "https://radioplacar-api.onrender.com";
 
 /* =========================================================
    ESTADO
@@ -18,29 +16,20 @@ const state = {
 
   favorites: new Set(
     JSON.parse(
-      localStorage.getItem(
-        "m-esportes-favorites"
-      ) || "[]"
+      localStorage.getItem("m-esportes-favorites") || "[]"
     )
   ),
 
   previousScores: {},
-
   scoreSystemStarted: false,
-
   clocks: {},
-
   goalAudioUnlocked: false,
-
   serviceWorkerRegistration: null,
 
   currentRadio: null,
-
   currentRadioIndex: null,
-
   radioResolving: new Set()
 };
-
 
 /* =========================================================
    ALERTAS
@@ -57,790 +46,511 @@ function loadAlertSettings() {
   try {
     return {
       ...alertDefaults,
-
       ...JSON.parse(
-        localStorage.getItem(
-          "m-esportes-alerts"
-        ) || "{}"
+        localStorage.getItem("m-esportes-alerts") || "{}"
       )
     };
   } catch {
-    return {
-      ...alertDefaults
-    };
+    return { ...alertDefaults };
   }
 }
 
-const alertSettings =
-  loadAlertSettings();
-
+const alertSettings = loadAlertSettings();
 
 /* =========================================================
    ELEMENTOS
 ========================================================= */
 
 const els = {
-  homeGames:
-    document.getElementById(
-      "homeGames"
-    ),
+  homeGames: document.getElementById("homeGames"),
+  liveGames: document.getElementById("liveGames"),
+  favoriteGames: document.getElementById("favoriteGames"),
+  leaguesList: document.getElementById("leaguesList"),
+  newsList: document.getElementById("newsList"),
+  pregameCard: document.getElementById("pregameCard"),
 
-  liveGames:
-    document.getElementById(
-      "liveGames"
-    ),
+  todayCount: document.getElementById("todayCount"),
+  liveCount: document.getElementById("liveCount"),
+  favoritesCount: document.getElementById("favoritesCount"),
+  leaguesCount: document.getElementById("leaguesCount"),
 
-  favoriteGames:
-    document.getElementById(
-      "favoriteGames"
-    ),
+  refreshBtn: document.getElementById("refreshBtn"),
+  notificationBtn: document.getElementById("notificationBtn"),
 
-  leaguesList:
-    document.getElementById(
-      "leaguesList"
-    ),
+  tickerTrack: document.getElementById("tickerTrack"),
 
-  newsList:
-    document.getElementById(
-      "newsList"
-    ),
+  radioList: document.getElementById("radioList"),
+  radioAudio: document.getElementById("radioAudio"),
+  radioNowPlaying: document.getElementById("radioNowPlaying"),
+  radioNowName: document.getElementById("radioNowName"),
+  radioNowCity: document.getElementById("radioNowCity"),
+  radioPauseBtn: document.getElementById("radioPauseBtn"),
 
-  pregameCard:
-    document.getElementById(
-      "pregameCard"
-    ),
-
-  todayCount:
-    document.getElementById(
-      "todayCount"
-    ),
-
-  liveCount:
-    document.getElementById(
-      "liveCount"
-    ),
-
-  favoritesCount:
-    document.getElementById(
-      "favoritesCount"
-    ),
-
-  leaguesCount:
-    document.getElementById(
-      "leaguesCount"
-    ),
-
-  refreshBtn:
-    document.getElementById(
-      "refreshBtn"
-    ),
-
-  notificationBtn:
-    document.getElementById(
-      "notificationBtn"
-    ),
-
-  tickerTrack:
-    document.getElementById(
-      "tickerTrack"
-    ),
-
-  radioList:
-    document.getElementById(
-      "radioList"
-    ),
-
-  radioAudio:
-    document.getElementById(
-      "radioAudio"
-    ),
-
-  radioNowPlaying:
-    document.getElementById(
-      "radioNowPlaying"
-    ),
-
-  radioNowName:
-    document.getElementById(
-      "radioNowName"
-    ),
-
-  radioNowCity:
-    document.getElementById(
-      "radioNowCity"
-    ),
-
-  radioPauseBtn:
-    document.getElementById(
-      "radioPauseBtn"
-    ),
-
-  alertGoal:
-    document.getElementById(
-      "alertGoal"
-    ),
-
-  alertStart:
-    document.getElementById(
-      "alertStart"
-    ),
-
-  alertHalftime:
-    document.getElementById(
-      "alertHalftime"
-    ),
-
-  alertFinal:
-    document.getElementById(
-      "alertFinal"
-    )
+  alertGoal: document.getElementById("alertGoal"),
+  alertStart: document.getElementById("alertStart"),
+  alertHalftime: document.getElementById("alertHalftime"),
+  alertFinal: document.getElementById("alertFinal")
 };
 
-
 /* =========================================================
-   ÁUDIO DE GOL
+   GOL RPF
 ========================================================= */
 
-const goalAudio =
-  new Audio(
-    "./audio/gol-rpf.mp3"
-  );
+const goalAudio = new Audio("./audio/gol-rpf.mp3");
 
-goalAudio.preload =
-  "auto";
-
-goalAudio.volume =
-  1;
-
+goalAudio.preload = "auto";
+goalAudio.volume = 1;
 
 /* =========================================================
    40 RÁDIOS
 
-   stream:
-   - quando conhecido, usa direto.
-   - quando null, o M Esportes procura
-     o stream de áudio automaticamente.
+   IMPORTANTE:
+   - As 15 que funcionaram foram mantidas.
+   - As 25 antigas que falharam foram substituídas.
+   - Nenhuma abre site externo.
 ========================================================= */
 
 const radios = [
+
+  /* =======================================================
+     15 QUE JÁ FUNCIONARAM - NÃO MEXER
+  ======================================================= */
 
   {
     name: "Rádio Grenal",
     city: "Porto Alegre - RS",
     search: "Radio Grenal",
-    aliases: [
-      "grenal"
-    ],
-    stream:
-      "https://grenal.audiostream.com.br:20000/aac"
+    aliases: ["grenal"],
+    stream: "https://grenal.audiostream.com.br:20000/aac"
   },
 
   {
     name: "Rádio Gaúcha",
     city: "Porto Alegre - RS",
     search: "Radio Gaucha",
-    aliases: [
-      "gaucha",
-      "radio gaucha"
-    ],
-    stream:
-      "https://1132747t.ha.azioncdn.net/primary/gaucha_rbs.sdp/playlist.m3u8"
+    aliases: ["gaucha", "radio gaucha"],
+    stream: "https://1132747t.ha.azioncdn.net/primary/gaucha_rbs.sdp/playlist.m3u8"
   },
 
   {
-    name: "Rádio Guaíba",
-    city: "Porto Alegre - RS",
-    search: "Radio Guaiba",
-    aliases: [
-      "guaiba",
-      "radio guaiba"
-    ],
-    stream:
-      "https://c1.audiostream.com.br:2007/site"
+    name: "Rádio Bandeirantes",
+    city: "São Paulo - SP",
+    search: "Radio Bandeirantes",
+    aliases: ["bandeirantes"],
+    stream: "https://playerservices.streamtheworld.com/api/livestream-redirect/RadioBandeirantesAAC_SC"
   },
 
   {
-    name: "Band RS",
-    city: "Porto Alegre - RS",
-    search:
-      "Band Porto Alegre",
-    aliases: [
-      "band rs",
-      "band porto alegre"
-    ],
+    name: "Jovem Pan News",
+    city: "São Paulo - SP",
+    search: "Jovem Pan News",
+    aliases: ["jovem pan news", "jovem pan"],
     stream: null
   },
 
   {
-    name: "Rádio Caxias",
+    name: "Energia 97",
+    city: "São Paulo - SP",
+    search: "Energia 97 FM",
+    aliases: ["energia 97", "energia fm"],
+    stream: "https://streaming.inweb.com.br/energia"
+  },
+
+  {
+    name: "CBN São Paulo",
+    city: "São Paulo - SP",
+    search: "CBN Sao Paulo",
+    aliases: ["cbn sao paulo", "cbn sp"],
+    stream: null
+  },
+
+  {
+    name: "Super Rádio Tupi",
+    city: "Rio de Janeiro - RJ",
+    search: "Super Radio Tupi",
+    aliases: ["super radio tupi", "radio tupi"],
+    stream: "https://8923.brasilstream.com.br/stream"
+  },
+
+  {
+    name: "CBN Rio",
+    city: "Rio de Janeiro - RJ",
+    search: "CBN Rio de Janeiro",
+    aliases: ["cbn rio"],
+    stream: null
+  },
+
+  {
+    name: "BandNews FM",
+    city: "São Paulo - SP",
+    search: "BandNews FM",
+    aliases: ["bandnews", "band news"],
+    stream: "https://playerservices.streamtheworld.com/api/livestream-redirect/BANDNEWSFM_SPAAC_SC"
+  },
+
+  {
+    name: "Rádio Globo",
+    city: "Rio de Janeiro - RJ",
+    search: "Radio Globo Rio",
+    aliases: ["radio globo", "globo rio"],
+    stream: "https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_GLOBO_RJAAC_SC"
+  },
+
+  {
+    name: "Rádio Itatiaia",
+    city: "Belo Horizonte - MG",
+    search: "Radio Itatiaia",
+    aliases: ["itatiaia"],
+    stream: "https://8903.brasilstream.com.br/stream"
+  },
+
+  {
+    name: "98 FM",
+    city: "Belo Horizonte - MG",
+    search: "98 FM Belo Horizonte",
+    aliases: ["98 fm belo horizonte", "98 live"],
+    stream: "https://9554.brasilstream.com.br/stream"
+  },
+
+  {
+    name: "CBN Salvador",
+    city: "Salvador - BA",
+    search: "CBN Salvador",
+    aliases: ["cbn salvador"],
+    stream: null
+  },
+
+  {
+    name: "Rádio Nacional",
+    city: "Brasília - DF",
+    search: "Radio Nacional Brasilia",
+    aliases: ["nacional brasilia"],
+    stream: "https://radionacionalbrasilia-stream.ebc.com.br/index.m3u8"
+  },
+
+  {
+    name: "Rádio Clube do Pará",
+    city: "Belém - PA",
+    search: "Radio Clube do Para",
+    aliases: ["clube do para", "radio clube para"],
+    stream: null
+  },
+
+
+  /* =======================================================
+     25 NOVAS - FUTEBOL / A-B-C / FUTEBOL GAÚCHO
+  ======================================================= */
+
+  {
+    name: "Gaúcha Serra",
     city: "Caxias do Sul - RS",
-    search:
-      "Radio Caxias",
+    search: "Gaucha Serra",
     aliases: [
-      "caxias"
+      "gaucha serra",
+      "gaucha caxias"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Bandeirantes",
-    city:
-      "São Paulo - SP",
-    search:
-      "Radio Bandeirantes",
+    name: "Rádio Universidade",
+    city: "Pelotas - RS",
+    search: "Radio Universidade Pelotas",
     aliases: [
-      "bandeirantes"
-    ],
-    stream:
-      "https://playerservices.streamtheworld.com/api/livestream-redirect/RadioBandeirantesAAC_SC"
-  },
-
-  {
-    name:
-      "Jovem Pan News",
-    city:
-      "São Paulo - SP",
-    search:
-      "Jovem Pan News",
-    aliases: [
-      "jovem pan news",
-      "jovem pan"
+      "radio universidade pelotas",
+      "universidade pelotas",
+      "ucpel"
     ],
     stream: null
   },
 
   {
-    name:
-      "Energia 97",
-    city:
-      "São Paulo - SP",
-    search:
-      "Energia 97 FM",
+    name: "Planalto News",
+    city: "Passo Fundo - RS",
+    search: "Planalto News Passo Fundo",
     aliases: [
-      "energia 97",
-      "energia fm"
-    ],
-    stream:
-      "https://streaming.inweb.com.br/energia"
-  },
-
-  {
-    name:
-      "CBN São Paulo",
-    city:
-      "São Paulo - SP",
-    search:
-      "CBN Sao Paulo",
-    aliases: [
-      "cbn sao paulo",
-      "cbn sp"
+      "planalto news",
+      "planalto passo fundo"
     ],
     stream: null
   },
 
   {
-    name:
-      "Transamérica São Paulo",
-    city:
-      "São Paulo - SP",
-    search:
-      "Transamerica Sao Paulo",
+    name: "Tua Rádio Veranense",
+    city: "Veranópolis - RS",
+    search: "Tua Radio Veranense",
     aliases: [
-      "transamerica"
+      "veranense",
+      "tua radio veranense"
     ],
     stream: null
   },
 
   {
-    name:
-      "Super Rádio Tupi",
-    city:
-      "Rio de Janeiro - RJ",
-    search:
-      "Super Radio Tupi",
+    name: "Rádio Difusora",
+    city: "Bento Gonçalves - RS",
+    search: "Radio Difusora Bento Goncalves",
     aliases: [
-      "super radio tupi",
-      "radio tupi"
-    ],
-    stream:
-      "https://8923.brasilstream.com.br/stream"
-  },
-
-  {
-    name:
-      "CBN Rio",
-    city:
-      "Rio de Janeiro - RJ",
-    search:
-      "CBN Rio de Janeiro",
-    aliases: [
-      "cbn rio"
+      "difusora bento goncalves",
+      "difusora serra gaucha"
     ],
     stream: null
   },
 
   {
-    name:
-      "BandNews FM",
-    city:
-      "São Paulo - SP",
-    search:
-      "BandNews FM",
+    name: "Rádio Progresso",
+    city: "Ijuí - RS",
+    search: "Radio Progresso Ijui",
     aliases: [
-      "bandnews",
-      "band news"
-    ],
-    stream:
-      "https://playerservices.streamtheworld.com/api/livestream-redirect/BANDNEWSFM_SPAAC_SC"
-  },
-
-  {
-    name:
-      "Rádio Globo",
-    city:
-      "Rio de Janeiro - RJ",
-    search:
-      "Radio Globo Rio",
-    aliases: [
-      "radio globo",
-      "globo rio"
-    ],
-    stream:
-      "https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_GLOBO_RJAAC_SC"
-  },
-
-  {
-    name:
-      "Rádio Itatiaia",
-    city:
-      "Belo Horizonte - MG",
-    search:
-      "Radio Itatiaia",
-    aliases: [
-      "itatiaia"
-    ],
-    stream:
-      "https://8903.brasilstream.com.br/stream"
-  },
-
-  {
-    name:
-      "98 FM",
-    city:
-      "Belo Horizonte - MG",
-    search:
-      "98 FM Belo Horizonte",
-    aliases: [
-      "98 fm",
-      "98 live"
-    ],
-    stream:
-      "https://9554.brasilstream.com.br/stream"
-  },
-
-  {
-    name:
-      "Rádio Super",
-    city:
-      "Belo Horizonte - MG",
-    search:
-      "Radio Super Minas",
-    aliases: [
-      "radio super",
-      "super fm"
+      "progresso ijui",
+      "radio progresso de ijui"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Jornal",
-    city:
-      "Recife - PE",
-    search:
-      "Radio Jornal Recife",
+    name: "Banda B",
+    city: "Curitiba - PR",
+    search: "Banda B Curitiba",
     aliases: [
-      "radio jornal",
-      "jornal recife"
+      "banda b",
+      "banda b curitiba"
     ],
     stream: null
   },
 
   {
-    name:
-      "CBN Recife",
-    city:
-      "Recife - PE",
-    search:
-      "CBN Recife",
+    name: "TMC Curitiba",
+    city: "Curitiba - PR",
+    search: "TMC Curitiba",
     aliases: [
-      "cbn recife"
+      "tmc curitiba"
     ],
     stream: null
   },
 
   {
-    name:
-      "Transamérica Recife",
-    city:
-      "Recife - PE",
-    search:
-      "Transamerica Recife",
+    name: "Paiquerê",
+    city: "Londrina - PR",
+    search: "Paiquere Londrina",
     aliases: [
-      "transamerica recife"
+      "paiquere",
+      "paiquere londrina"
     ],
     stream: null
   },
 
   {
-    name:
-      "Verdinha FM",
-    city:
-      "Fortaleza - CE",
-    search:
-      "Verdinha FM Fortaleza",
+    name: "Rádio Colmeia",
+    city: "Paraná",
+    search: "Radio Colmeia Parana",
     aliases: [
-      "verdinha"
+      "radio colmeia",
+      "colmeia parana"
     ],
     stream: null
   },
 
   {
-    name:
-      "Jovem Pan Fortaleza",
-    city:
-      "Fortaleza - CE",
-    search:
-      "Jovem Pan Fortaleza",
+    name: "Rádio Clube Recife",
+    city: "Recife - PE",
+    search: "Radio Clube Recife",
     aliases: [
-      "jovem pan fortaleza"
+      "clube recife",
+      "radio clube pernambuco"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Assunção",
-    city:
-      "Fortaleza - CE",
-    search:
-      "Radio Assuncao Fortaleza",
+    name: "TMC Recife",
+    city: "Recife - PE",
+    search: "TMC Recife",
     aliases: [
-      "assuncao"
+      "tmc recife"
     ],
     stream: null
   },
 
   {
-    name:
-      "CBN Salvador",
-    city:
-      "Salvador - BA",
-    search:
-      "CBN Salvador",
+    name: "Rádio Jornal Caruaru",
+    city: "Caruaru - PE",
+    search: "Radio Jornal Caruaru",
     aliases: [
-      "cbn salvador"
+      "jornal caruaru",
+      "radio jornal caruaru"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Sociedade",
-    city:
-      "Salvador - BA",
-    search:
-      "Radio Sociedade Salvador",
+    name: "O POVO CBN",
+    city: "Fortaleza - CE",
+    search: "O Povo CBN Fortaleza",
     aliases: [
-      "sociedade salvador",
-      "radio sociedade"
+      "o povo cbn",
+      "opovo cbn",
+      "cbn fortaleza"
     ],
     stream: null
   },
 
   {
-    name:
-      "CBN Brasília",
-    city:
-      "Brasília - DF",
-    search:
-      "CBN Brasilia",
+    name: "BandNews FM Ceará",
+    city: "Fortaleza - CE",
+    search: "BandNews Fortaleza",
     aliases: [
-      "cbn brasilia"
+      "bandnews fortaleza",
+      "bandnews fm fortaleza"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Nacional",
-    city:
-      "Brasília - DF",
-    search:
-      "Radio Nacional Brasilia",
+    name: "Vale FM",
+    city: "Ceará",
+    search: "Vale FM Ceara",
     aliases: [
-      "nacional brasilia"
-    ],
-    stream:
-      "https://radionacionalbrasilia-stream.ebc.com.br/index.m3u8"
-  },
-
-  {
-    name:
-      "CBN Goiânia",
-    city:
-      "Goiânia - GO",
-    search:
-      "CBN Goiania",
-    aliases: [
-      "cbn goiania"
+      "vale fm"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Sagres",
-    city:
-      "Goiânia - GO",
-    search:
-      "Radio Sagres Goiania",
+    name: "Rádio Bandeirantes Goiás",
+    city: "Goiânia - GO",
+    search: "Bandeirantes Goiania",
     aliases: [
-      "sagres"
+      "bandeirantes goiania",
+      "band goiania"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Clube",
-    city:
-      "Curitiba - PR",
-    search:
-      "Radio Clube Curitiba",
+    name: "Rádio Difusora",
+    city: "Goiânia - GO",
+    search: "Radio Difusora Goiania",
     aliases: [
-      "clube curitiba"
+      "difusora goiania",
+      "radio difusora goias"
     ],
     stream: null
   },
 
   {
-    name:
-      "CBN Curitiba",
-    city:
-      "Curitiba - PR",
-    search:
-      "CBN Curitiba",
+    name: "89 FM",
+    city: "Joinville - SC",
+    search: "89 FM Joinville",
     aliases: [
-      "cbn curitiba"
+      "89 fm joinville",
+      "radio 89 joinville"
     ],
     stream: null
   },
 
   {
-    name:
-      "Transamérica Curitiba",
-    city:
-      "Curitiba - PR",
-    search:
-      "Transamerica Curitiba",
+    name: "Oeste Capital FM",
+    city: "Chapecó - SC",
+    search: "Oeste Capital FM Chapeco",
     aliases: [
-      "transamerica curitiba"
+      "oeste capital",
+      "oeste capital chapeco"
     ],
     stream: null
   },
 
   {
-    name:
-      "CBN Florianópolis",
-    city:
-      "Florianópolis - SC",
-    search:
-      "CBN Florianopolis",
+    name: "Rádio Clube",
+    city: "Lages - SC",
+    search: "Radio Clube Lages",
     aliases: [
-      "cbn florianopolis"
+      "radio clube lages",
+      "clube lages"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Guarujá",
-    city:
-      "Florianópolis - SC",
-    search:
-      "Radio Guaruja Florianopolis",
+    name: "Vang FM",
+    city: "Santa Catarina",
+    search: "Vang FM Santa Catarina",
     aliases: [
-      "guaruja florianopolis"
+      "vang fm",
+      "radio vang"
     ],
     stream: null
   },
 
   {
-    name:
-      "Mirante News",
-    city:
-      "São Luís - MA",
-    search:
-      "Mirante News",
+    name: "Amanda FM",
+    city: "Santa Catarina",
+    search: "Amanda FM Santa Catarina",
     aliases: [
-      "mirante news",
-      "mirante"
+      "amanda fm"
     ],
     stream: null
   },
 
   {
-    name:
-      "Rádio Clube do Pará",
-    city:
-      "Belém - PA",
-    search:
-      "Radio Clube do Para",
+    name: "TMC Rio",
+    city: "Rio de Janeiro - RJ",
+    search: "TMC Rio de Janeiro",
     aliases: [
-      "clube do para"
+      "tmc rio",
+      "tmc rio de janeiro"
     ],
     stream: null
   },
 
   {
-    name:
-      "CBN Amazônia",
-    city:
-      "Manaus - AM",
-    search:
-      "CBN Amazonia Manaus",
+    name: "Rádio 94 FM",
+    city: "Rio de Janeiro - RJ",
+    search: "94 FM Rio de Janeiro",
     aliases: [
-      "cbn amazonia"
-    ],
-    stream: null
-  },
-
-  {
-    name:
-      "Rádio Clube",
-    city:
-      "Teresina - PI",
-    search:
-      "Radio Clube Teresina",
-    aliases: [
-      "clube teresina"
-    ],
-    stream: null
-  },
-
-  {
-    name:
-      "Rádio 98",
-    city:
-      "Natal - RN",
-    search:
-      "Radio 98 Natal",
-    aliases: [
-      "98 natal"
-    ],
-    stream: null
-  },
-
-  {
-    name:
-      "Rádio Correio",
-    city:
-      "João Pessoa - PB",
-    search:
-      "Radio Correio Joao Pessoa",
-    aliases: [
-      "correio joao pessoa",
-      "radio correio"
+      "94 fm rio",
+      "radio 94 rio"
     ],
     stream: null
   }
 ];
 
-
 /* =========================================================
-   SERVIDORES RADIO BROWSER
+   RADIO BROWSER
 ========================================================= */
 
 const RADIO_BROWSER_SERVERS = [
   "https://de1.api.radio-browser.info",
   "https://fi1.api.radio-browser.info",
-  "https://at1.api.radio-browser.info"
+  "https://at1.api.radio-browser.info",
+  "https://nl1.api.radio-browser.info"
 ];
-
 
 /* =========================================================
    AUXILIARES
 ========================================================= */
 
-function escapeHtml(
-  value = ""
-) {
+function escapeHtml(value = "") {
   return String(value)
-
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
-
-function normalizeText(
-  value = ""
-) {
+function normalizeText(value = "") {
   return String(value)
-
     .normalize("NFD")
-
-    .replace(
-      /[\u0300-\u036f]/g,
-      ""
-    )
-
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-
-    .replace(
-      /[^a-z0-9 ]/g,
-      " "
-    )
-
-    .replace(
-      /\s+/g,
-      " "
-    )
-
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-
-function first(
-  ...values
-) {
-  for (
-    const value
-    of values
-  ) {
+function first(...values) {
+  for (const value of values) {
     if (
       value !== undefined &&
       value !== null &&
@@ -853,53 +563,28 @@ function first(
   return null;
 }
 
-
-function pad2(
-  value
-) {
-  return String(value)
-    .padStart(
-      2,
-      "0"
-    );
+function pad2(value) {
+  return String(value).padStart(2, "0");
 }
-
 
 function todayBR() {
-  return new Intl
-    .DateTimeFormat(
-      "en-CA",
-      {
-        timeZone:
-          "America/Sao_Paulo",
-
-        year:
-          "numeric",
-
-        month:
-          "2-digit",
-
-        day:
-          "2-digit"
-      }
-    )
-    .format(
-      new Date()
-    );
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }
+  ).format(new Date());
 }
 
-
-function formatMatchTime(
-  value
-) {
+function formatMatchTime(value) {
   if (!value) {
     return "--:--";
   }
 
-  const date =
-    new Date(
-      value
-    );
+  const date = new Date(value);
 
   if (
     Number.isNaN(
@@ -909,39 +594,25 @@ function formatMatchTime(
     return "--:--";
   }
 
-  return date
-    .toLocaleTimeString(
-      "pt-BR",
-      {
-        timeZone:
-          "America/Sao_Paulo",
-
-        hour:
-          "2-digit",
-
-        minute:
-          "2-digit",
-
-        hour12:
-          false
-      }
-    );
+  return date.toLocaleTimeString(
+    "pt-BR",
+    {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }
+  );
 }
 
-
 /* =========================================================
-   STATUS DOS JOGOS
+   STATUS
 ========================================================= */
 
-function normalizeStatus(
-  raw
-) {
-  const value =
-    String(
-      raw || ""
-    )
-      .trim()
-      .toLowerCase();
+function normalizeStatus(raw) {
+  const value = String(raw || "")
+    .trim()
+    .toLowerCase();
 
   if (
     value === "1h" ||
@@ -960,9 +631,7 @@ function normalizeStatus(
     value === "halftime" ||
     value === "half_time" ||
     value === "half-time" ||
-    value.includes(
-      "interval"
-    )
+    value.includes("interval")
   ) {
     return "HT";
   }
@@ -982,9 +651,7 @@ function normalizeStatus(
     value === "ended" ||
     value === "final" ||
     value === "fulltime" ||
-    value.includes(
-      "encerr"
-    )
+    value.includes("encerr")
   ) {
     return "FT";
   }
@@ -1001,86 +668,73 @@ function normalizeStatus(
   return "NS";
 }
 
-
 /* =========================================================
    NORMALIZAR JOGO
 ========================================================= */
 
-function normalizeGame(
-  game
-) {
-  const homeId =
-    first(
-      game.teams?.home?.id,
-      game.home?.id,
-      game.home_team?.id,
-      game.home_team_id
-    );
+function normalizeGame(game) {
+  const homeId = first(
+    game.teams?.home?.id,
+    game.home?.id,
+    game.home_team?.id,
+    game.home_team_id
+  );
 
-  const awayId =
-    first(
-      game.teams?.away?.id,
-      game.away?.id,
-      game.away_team?.id,
-      game.away_team_id
-    );
+  const awayId = first(
+    game.teams?.away?.id,
+    game.away?.id,
+    game.away_team?.id,
+    game.away_team_id
+  );
 
-  const rawStatus =
-    first(
-      game.status?.short,
-      game.fixture?.status?.short,
-      game.status,
-      game.state,
-      game.match_status
-    );
+  const rawStatus = first(
+    game.status?.short,
+    game.fixture?.status?.short,
+    game.status,
+    game.state,
+    game.match_status
+  );
 
-  const dateRaw =
-    first(
-      game.event_date,
-      game.fixture?.date,
-      game.date,
-      game.start_time,
-      game.kickoff,
-      game.datetime
-    );
+  const dateRaw = first(
+    game.event_date,
+    game.fixture?.date,
+    game.date,
+    game.start_time,
+    game.kickoff,
+    game.datetime
+  );
 
-  const start =
-    first(
-      game.time,
-      game.fixture?.time,
-      game.hour,
-      formatMatchTime(
-        dateRaw
-      )
-    );
+  const start = first(
+    game.time,
+    game.fixture?.time,
+    game.hour,
+    formatMatchTime(dateRaw)
+  );
 
-  const home =
-    first(
-      game.teams?.home?.name,
-      game.home?.name,
-      game.home_team?.name,
-      game.home_team,
-      "Mandante"
-    );
+  const home = first(
+    game.teams?.home?.name,
+    game.home?.name,
+    game.home_team?.name,
+    game.home_team,
+    "Mandante"
+  );
 
-  const away =
-    first(
-      game.teams?.away?.name,
-      game.away?.name,
-      game.away_team?.name,
-      game.away_team,
-      "Visitante"
-    );
+  const away = first(
+    game.teams?.away?.name,
+    game.away?.name,
+    game.away_team?.name,
+    game.away_team,
+    "Visitante"
+  );
 
   return {
-    id:
-      String(
-        first(
-          game.id,
-          game.fixture?.id,
-          `${homeId || "h"}-${awayId || "a"}-${dateRaw || ""}`
-        )
-      ),
+    id: String(
+      first(
+        game.id,
+        game.fixture?.id,
+        `${homeId || "h"}-${awayId || "a"}-${dateRaw || ""}`
+      )
+    ),
 
     home,
     away,
@@ -1088,108 +742,86 @@ function normalizeGame(
     homeId,
     awayId,
 
-    homeLogo:
-      first(
-        game.teams?.home?.logo,
-        game.home?.logo,
-        game.home_logo,
+    homeLogo: first(
+      game.teams?.home?.logo,
+      game.home?.logo,
+      game.home_logo,
+      homeId
+        ? `${API_BASE}/api/team-logo/${homeId}`
+        : null
+    ),
 
-        homeId
-          ? `${API_BASE}/api/team-logo/${homeId}`
-          : null
-      ),
+    awayLogo: first(
+      game.teams?.away?.logo,
+      game.away?.logo,
+      game.away_logo,
+      awayId
+        ? `${API_BASE}/api/team-logo/${awayId}`
+        : null
+    ),
 
-    awayLogo:
-      first(
-        game.teams?.away?.logo,
-        game.away?.logo,
-        game.away_logo,
+    hs: first(
+      game.goals?.home,
+      game.score?.home,
+      game.home_score,
+      game.score_home
+    ),
 
-        awayId
-          ? `${API_BASE}/api/team-logo/${awayId}`
-          : null
-      ),
+    as: first(
+      game.goals?.away,
+      game.score?.away,
+      game.away_score,
+      game.score_away
+    ),
 
-    hs:
-      first(
-        game.goals?.home,
-        game.score?.home,
-        game.home_score,
-        game.score_home
-      ),
+    minute: first(
+      game.current_minute,
+      game.minute,
+      game.elapsed,
+      game.status?.elapsed,
+      game.fixture?.status?.elapsed
+    ),
 
-    as:
-      first(
-        game.goals?.away,
-        game.score?.away,
-        game.away_score,
-        game.score_away
-      ),
+    status: normalizeStatus(rawStatus),
 
-    minute:
-      first(
-        game.current_minute,
-        game.minute,
-        game.elapsed,
-        game.status?.elapsed,
-        game.fixture?.status?.elapsed
-      ),
+    league: first(
+      game.league?.name,
+      game.competition?.name,
+      game.league_name,
+      game.championship,
+      game.league,
+      "Campeonato"
+    ),
 
-    status:
-      normalizeStatus(
-        rawStatus
-      ),
+    country: first(
+      game.league?.country,
+      game.country?.name,
+      game.country,
+      game.region,
+      "Internacional"
+    ),
 
-    league:
-      first(
-        game.league?.name,
-        game.competition?.name,
-        game.league_name,
-        game.championship,
-        game.league,
-        "Campeonato"
-      ),
+    start: start || "--:--",
 
-    country:
-      first(
-        game.league?.country,
-        game.country?.name,
-        game.country,
-        game.region,
-        "Internacional"
-      ),
+    date: dateRaw,
 
-    start:
-      start ||
-      "--:--",
-
-    date:
-      dateRaw,
-
-    raw:
-      game
+    raw: game
   };
 }
-
 
 /* =========================================================
    EXTRAIR ARRAY
 ========================================================= */
 
-function extractArray(
-  data
-) {
+function extractArray(data) {
   if (
-    Array.isArray(
-      data
-    )
+    Array.isArray(data)
   ) {
     return data;
   }
 
   for (
-    const key
-    of [
+    const key of [
       "response",
       "matches",
       "games",
@@ -1210,43 +842,27 @@ function extractArray(
   return [];
 }
 
-
 /* =========================================================
-   PARTIDA
+   PARTIDAS
 ========================================================= */
 
-function isLive(
-  game
-) {
+function isLive(game) {
   return [
     "1H",
     "HT",
     "2H"
-  ].includes(
-    game.status
-  );
+  ].includes(game.status);
 }
 
+function numericScore(value) {
+  const number = Number(value);
 
-function numericScore(
-  value
-) {
-  const number =
-    Number(
-      value
-    );
-
-  return Number.isFinite(
-    number
-  )
+  return Number.isFinite(number)
     ? number
     : 0;
 }
 
-
-function scoreValue(
-  value
-) {
+function scoreValue(value) {
   if (
     value === null ||
     value === undefined ||
@@ -1258,84 +874,52 @@ function scoreValue(
   return value;
 }
 
-
 /* =========================================================
    RELÓGIO
 ========================================================= */
 
-function syncClock(
-  game
-) {
-  const id =
-    String(
-      game.id
-    );
+function syncClock(game) {
+  const id = String(game.id);
 
   if (
     ![
       "1H",
       "2H"
-    ].includes(
-      game.status
-    )
+    ].includes(game.status)
   ) {
-    delete state.clocks[
-      id
-    ];
+    delete state.clocks[id];
 
     return;
   }
 
-  const minute =
-    Number(
-      game.minute
-    );
+  const minute = Number(game.minute);
 
   if (
-    !Number.isFinite(
-      minute
-    )
+    !Number.isFinite(minute)
   ) {
     return;
   }
 
-  const old =
-    state.clocks[
-      id
-    ];
+  const old = state.clocks[id];
 
   if (
     !old ||
     old.minute !== minute ||
-    old.status !==
-      game.status
+    old.status !== game.status
   ) {
-    state.clocks[
-      id
-    ] = {
+    state.clocks[id] = {
       minute,
-
-      status:
-        game.status,
-
-      syncedAt:
-        Date.now()
+      status: game.status,
+      syncedAt: Date.now()
     };
   }
 }
 
-
 function syncAllClocks() {
-  state.games
-    .forEach(
-      syncClock
-    );
+  state.games.forEach(syncClock);
 }
 
-
-function getGameClock(
-  game
-) {
+function getGameClock(game) {
   if (
     game.status === "HT"
   ) {
@@ -1356,23 +940,18 @@ function getGameClock(
 
   const clock =
     state.clocks[
-      String(
-        game.id
-      )
+      String(game.id)
     ];
 
   if (!clock) {
-    return (
-      game.status === "1H"
-        ? "1º TEMPO"
-        : "2º TEMPO"
-    );
+    return game.status === "1H"
+      ? "1º TEMPO"
+      : "2º TEMPO";
   }
 
   const seconds =
     Math.max(
       0,
-
       Math.floor(
         (
           Date.now() -
@@ -1382,8 +961,7 @@ function getGameClock(
     );
 
   const total =
-    clock.minute *
-      60 +
+    clock.minute * 60 +
     seconds;
 
   const minute =
@@ -1394,15 +972,10 @@ function getGameClock(
   const second =
     total % 60;
 
-  return (
-    `${pad2(minute)}:${pad2(second)}`
-  );
+  return `${pad2(minute)}:${pad2(second)}`;
 }
 
-
-function periodText(
-  game
-) {
+function periodText(game) {
   switch (
     game.status
   ) {
@@ -1423,9 +996,8 @@ function periodText(
   }
 }
 
-
 /* =========================================================
-   GOL RPF
+   SOM DE GOL
 ========================================================= */
 
 function unlockGoalAudio() {
@@ -1439,43 +1011,29 @@ function unlockGoalAudio() {
     const volume =
       goalAudio.volume;
 
-    goalAudio.volume =
-      0;
+    goalAudio.volume = 0;
 
     const promise =
       goalAudio.play();
 
     if (promise) {
       promise
+        .then(() => {
+          goalAudio.pause();
 
-        .then(
-          () => {
-            goalAudio.pause();
+          goalAudio.currentTime = 0;
+          goalAudio.volume = volume;
 
-            goalAudio.currentTime =
-              0;
-
-            goalAudio.volume =
-              volume;
-
-            state.goalAudioUnlocked =
-              true;
-          }
-        )
-
-        .catch(
-          () => {
-            goalAudio.volume =
-              volume;
-          }
-        );
+          state.goalAudioUnlocked = true;
+        })
+        .catch(() => {
+          goalAudio.volume = volume;
+        });
     }
-
   } catch {
-    /* aguardando toque */
+    /* aguardando interação */
   }
 }
-
 
 function playGoalRpf() {
   if (
@@ -1486,28 +1044,20 @@ function playGoalRpf() {
 
   try {
     goalAudio.pause();
-
-    goalAudio.currentTime =
-      0;
-
-    goalAudio.volume =
-      1;
+    goalAudio.currentTime = 0;
+    goalAudio.volume = 1;
 
     goalAudio
       .play()
       .catch(
         console.warn
       );
-
   } catch (
     error
   ) {
-    console.error(
-      error
-    );
+    console.error(error);
   }
 }
-
 
 /* =========================================================
    DETECTOR DE GOL
@@ -1518,9 +1068,7 @@ function initializeScoreMemory() {
     .forEach(
       game => {
         state.previousScores[
-          String(
-            game.id
-          )
+          String(game.id)
         ] = {
           home:
             numericScore(
@@ -1535,19 +1083,15 @@ function initializeScoreMemory() {
       }
     );
 
-  state.scoreSystemStarted =
-    true;
+  state.scoreSystemStarted = true;
 }
-
 
 function checkGoals() {
   state.games
     .forEach(
       game => {
         const id =
-          String(
-            game.id
-          );
+          String(game.id);
 
         const current = {
           home:
@@ -1562,14 +1106,10 @@ function checkGoals() {
         };
 
         const previous =
-          state.previousScores[
-            id
-          ];
+          state.previousScores[id];
 
         if (!previous) {
-          state.previousScores[
-            id
-          ] =
+          state.previousScores[id] =
             current;
 
           return;
@@ -1584,9 +1124,7 @@ function checkGoals() {
           previous.away;
 
         if (
-          state.favorites.has(
-            id
-          ) &&
+          state.favorites.has(id) &&
           (
             homeGoal ||
             awayGoal
@@ -1601,19 +1139,15 @@ function checkGoals() {
 
           notify(
             "⚽ GOOOOOL!",
-
             `${scoringTeam} marcou! ${game.home} ${current.home} x ${current.away} ${game.away}`
           );
         }
 
-        state.previousScores[
-          id
-        ] =
+        state.previousScores[id] =
           current;
       }
     );
 }
-
 
 /* =========================================================
    ESCUDOS
@@ -1627,8 +1161,7 @@ function teamLogo(
     return `
       <span class="team-logo-fallback">
         ${escapeHtml(
-          team?.charAt(0) ||
-          "?"
+          team?.charAt(0) || "?"
         )}
       </span>
     `;
@@ -1651,35 +1184,27 @@ function teamLogo(
       style="display:none"
     >
       ${escapeHtml(
-        team?.charAt(0) ||
-        "?"
+        team?.charAt(0) || "?"
       )}
     </span>
   `;
 }
 
-
 /* =========================================================
-   CARD JOGO
+   CARD DE JOGO
 ========================================================= */
 
-function matchCard(
-  game
-) {
+function matchCard(game) {
   const favorite =
     state.favorites.has(
-      String(
-        game.id
-      )
+      String(game.id)
     );
 
   const live =
     [
       "1H",
       "2H"
-    ].includes(
-      game.status
-    );
+    ].includes(game.status);
 
   return `
     <div class="match-card">
@@ -1687,7 +1212,6 @@ function matchCard(
       <div
         class="match-time ${live ? "live" : ""}"
       >
-
         ${
           live
             ? `
@@ -1696,22 +1220,15 @@ function matchCard(
                 data-clock-id="${escapeHtml(game.id)}"
               >
                 ${escapeHtml(
-                  getGameClock(
-                    game
-                  )
+                  getGameClock(game)
                 )}
               </span>
             `
-
             : escapeHtml(
-                getGameClock(
-                  game
-                )
+                getGameClock(game)
               )
         }
-
       </div>
-
 
       <div class="teams">
 
@@ -1730,7 +1247,6 @@ function matchCard(
 
         </div>
 
-
         <div class="team">
 
           ${teamLogo(
@@ -1748,23 +1264,17 @@ function matchCard(
 
       </div>
 
-
       <div class="score">
 
         <span>
-          ${scoreValue(
-            game.hs
-          )}
+          ${scoreValue(game.hs)}
         </span>
 
         <span>
-          ${scoreValue(
-            game.as
-          )}
+          ${scoreValue(game.as)}
         </span>
 
       </div>
-
 
       <button
         class="favorite-btn ${favorite ? "active" : ""}"
@@ -1778,14 +1288,11 @@ function matchCard(
   `;
 }
 
-
 /* =========================================================
-   AGRUPAR
+   AGRUPAMENTO
 ========================================================= */
 
-function groupGames(
-  games
-) {
+function groupGames(games) {
   const map =
     new Map();
 
@@ -1803,9 +1310,7 @@ function groupGames(
         `${country}|${league}`;
 
       if (
-        !map.has(
-          key
-        )
+        !map.has(key)
       ) {
         map.set(
           key,
@@ -1818,13 +1323,9 @@ function groupGames(
       }
 
       map
-        .get(
-          key
-        )
+        .get(key)
         .games
-        .push(
-          game
-        );
+        .push(game);
     }
   );
 
@@ -1832,7 +1333,6 @@ function groupGames(
     ...map.values()
   ];
 }
-
 
 /* =========================================================
    RENDER JOGOS
@@ -1855,15 +1355,11 @@ function renderGames(
       <div class="empty-state">
 
         <strong>
-          ${escapeHtml(
-            emptyTitle
-          )}
+          ${escapeHtml(emptyTitle)}
         </strong>
 
         <span>
-          ${escapeHtml(
-            emptyText
-          )}
+          ${escapeHtml(emptyText)}
         </span>
 
       </div>
@@ -1873,9 +1369,7 @@ function renderGames(
   }
 
   container.innerHTML =
-    groupGames(
-      games
-    )
+    groupGames(games)
       .map(
         group => `
           <div class="league-group">
@@ -1907,9 +1401,7 @@ function renderGames(
 
             ${
               group.games
-                .map(
-                  matchCard
-                )
+                .map(matchCard)
                 .join("")
             }
 
@@ -1918,7 +1410,6 @@ function renderGames(
       )
       .join("");
 }
-
 
 /* =========================================================
    DESTAQUE
@@ -1938,14 +1429,12 @@ function choosePregameGame() {
 
     state.games.find(
       game =>
-        game.status ===
-        "HT"
+        game.status === "HT"
     ) ||
 
     state.games.find(
       game =>
-        game.status ===
-        "NS"
+        game.status === "NS"
     ) ||
 
     state.games[0] ||
@@ -1953,7 +1442,6 @@ function choosePregameGame() {
     null
   );
 }
-
 
 function pregameLogo(
   url,
@@ -1971,13 +1459,11 @@ function pregameLogo(
   return `
     <div class="pregame-team-logo-fallback">
       ${escapeHtml(
-        team?.charAt(0) ||
-        "?"
+        team?.charAt(0) || "?"
       )}
     </div>
   `;
 }
-
 
 function renderPregame() {
   if (
@@ -2007,8 +1493,7 @@ function renderPregame() {
       game.status
     );
 
-  let center =
-    "";
+  let center = "";
 
   if (live) {
     center = `
@@ -2021,9 +1506,7 @@ function renderPregame() {
         data-clock-id="${escapeHtml(game.id)}"
       >
         ${escapeHtml(
-          getGameClock(
-            game
-          )
+          getGameClock(game)
         )}
       </div>
 
@@ -2035,8 +1518,7 @@ function renderPregame() {
     `;
 
   } else if (
-    game.status ===
-    "HT"
+    game.status === "HT"
   ) {
     center = `
       <div class="label">
@@ -2051,8 +1533,7 @@ function renderPregame() {
     `;
 
   } else if (
-    game.status ===
-    "FT"
+    game.status === "FT"
   ) {
     center = `
       <div class="label">
@@ -2073,9 +1554,7 @@ function renderPregame() {
       </div>
 
       <div class="time">
-        ${escapeHtml(
-          game.start
-        )}
+        ${escapeHtml(game.start)}
       </div>
 
       <div class="score-big">
@@ -2090,15 +1569,11 @@ function renderPregame() {
       <div>
 
         <div class="pregame-competition">
-          ${escapeHtml(
-            game.league
-          )}
+          ${escapeHtml(game.league)}
         </div>
 
         <div class="pregame-country">
-          ${escapeHtml(
-            game.country
-          )}
+          ${escapeHtml(game.country)}
         </div>
 
       </div>
@@ -2107,24 +1582,19 @@ function renderPregame() {
         ${
           live
             ? "AO VIVO"
-
             : game.status === "HT"
               ? "INTERVALO"
-
               : game.status === "FT"
                 ? "ENCERRADO"
-
                 : "PRÉ-JOGO"
         }
       </div>
 
     </div>
 
-
     <div class="pregame-banner">
       M ESPORTES 3 MINUTOS • ESQUENTANDO O JOGO
     </div>
-
 
     <div class="pregame-match">
 
@@ -2136,18 +1606,14 @@ function renderPregame() {
         )}
 
         <strong>
-          ${escapeHtml(
-            game.home
-          )}
+          ${escapeHtml(game.home)}
         </strong>
 
       </div>
 
-
       <div class="pregame-center">
         ${center}
       </div>
-
 
       <div class="pregame-team">
 
@@ -2157,9 +1623,7 @@ function renderPregame() {
         )}
 
         <strong>
-          ${escapeHtml(
-            game.away
-          )}
+          ${escapeHtml(game.away)}
         </strong>
 
       </div>
@@ -2168,28 +1632,20 @@ function renderPregame() {
   `;
 }
 
-
 /* =========================================================
    M ESPORTES AGORA
 ========================================================= */
 
 function createAutomaticNews() {
-  const news =
-    [];
+  const news = [];
 
   state.games
-    .filter(
-      isLive
-    )
-    .slice(
-      0,
-      4
-    )
+    .filter(isLive)
+    .slice(0, 4)
     .forEach(
       game => {
         news.push({
-          type:
-            "AO VIVO",
+          type: "AO VIVO",
 
           title:
             `${game.home} ${scoreValue(game.hs)} x ${scoreValue(game.as)} ${game.away}`,
@@ -2203,18 +1659,13 @@ function createAutomaticNews() {
   state.games
     .filter(
       game =>
-        game.status ===
-        "NS"
+        game.status === "NS"
     )
-    .slice(
-      0,
-      4
-    )
+    .slice(0, 4)
     .forEach(
       game => {
         news.push({
-          type:
-            "PRÓXIMO JOGO",
+          type: "PRÓXIMO JOGO",
 
           title:
             `${game.home} x ${game.away}`,
@@ -2228,18 +1679,13 @@ function createAutomaticNews() {
   state.games
     .filter(
       game =>
-        game.status ===
-        "FT"
+        game.status === "FT"
     )
-    .slice(
-      0,
-      4
-    )
+    .slice(0, 4)
     .forEach(
       game => {
         news.push({
-          type:
-            "FIM DE JOGO",
+          type: "FIM DE JOGO",
 
           title:
             `${game.home} ${scoreValue(game.hs)} x ${scoreValue(game.as)} ${game.away}`,
@@ -2256,7 +1702,6 @@ function createAutomaticNews() {
       10
     );
 }
-
 
 /* =========================================================
    NOTÍCIAS
@@ -2296,21 +1741,15 @@ function renderNews() {
           <article class="news-card">
 
             <div class="news-tag">
-              🔴 ${escapeHtml(
-                item.type
-              )}
+              🔴 ${escapeHtml(item.type)}
             </div>
 
             <h3>
-              ${escapeHtml(
-                item.title
-              )}
+              ${escapeHtml(item.title)}
             </h3>
 
             <p>
-              ${escapeHtml(
-                item.summary
-              )}
+              ${escapeHtml(item.summary)}
             </p>
 
           </article>
@@ -2318,7 +1757,6 @@ function renderNews() {
       )
       .join("");
 }
-
 
 /* =========================================================
    TICKER
@@ -2331,17 +1769,11 @@ function renderTicker() {
     return;
   }
 
-  const parts =
-    [];
+  const parts = [];
 
   state.games
-    .filter(
-      isLive
-    )
-    .slice(
-      0,
-      5
-    )
+    .filter(isLive)
+    .slice(0, 5)
     .forEach(
       game => {
         parts.push(
@@ -2353,13 +1785,9 @@ function renderTicker() {
   state.games
     .filter(
       game =>
-        game.status ===
-        "FT"
+        game.status === "FT"
     )
-    .slice(
-      0,
-      5
-    )
+    .slice(0, 5)
     .forEach(
       game => {
         parts.push(
@@ -2371,13 +1799,9 @@ function renderTicker() {
   state.games
     .filter(
       game =>
-        game.status ===
-        "NS"
+        game.status === "NS"
     )
-    .slice(
-      0,
-      5
-    )
+    .slice(0, 5)
     .forEach(
       game => {
         parts.push(
@@ -2394,25 +1818,22 @@ function renderTicker() {
     );
   }
 
-  els.tickerTrack
-    .textContent =
-      parts.join(
-        "   •   "
-      );
+  els.tickerTrack.textContent =
+    parts.join(
+      "   •   "
+    );
 }
 
-
 /* =========================================================
-   HOME
+   HOME / AO VIVO / FAVORITOS / LIGAS
 ========================================================= */
 
 function renderHome() {
   if (
     els.todayCount
   ) {
-    els.todayCount
-      .textContent =
-        `${state.games.length} jogos`;
+    els.todayCount.textContent =
+      `${state.games.length} jogos`;
   }
 
   renderGames(
@@ -2423,18 +1844,12 @@ function renderHome() {
   );
 }
 
-
-/* =========================================================
-   AO VIVO
-========================================================= */
-
 function renderLive() {
   if (
     els.liveCount
   ) {
-    els.liveCount
-      .textContent =
-        `${state.live.length} partidas`;
+    els.liveCount.textContent =
+      `${state.live.length} partidas`;
   }
 
   renderGames(
@@ -2445,29 +1860,20 @@ function renderLive() {
   );
 }
 
-
-/* =========================================================
-   FAVORITOS
-========================================================= */
-
 function renderFavorites() {
   const games =
-    state.games
-      .filter(
-        game =>
-          state.favorites.has(
-            String(
-              game.id
-            )
-          )
-      );
+    state.games.filter(
+      game =>
+        state.favorites.has(
+          String(game.id)
+        )
+    );
 
   if (
     els.favoritesCount
   ) {
-    els.favoritesCount
-      .textContent =
-        `${games.length} jogos`;
+    els.favoritesCount.textContent =
+      `${games.length} jogos`;
   }
 
   renderGames(
@@ -2477,11 +1883,6 @@ function renderFavorites() {
     "Marque ★ em uma partida para receber seus alertas."
   );
 }
-
-
-/* =========================================================
-   LIGAS
-========================================================= */
 
 function renderLeagues() {
   if (
@@ -2498,47 +1899,40 @@ function renderLeagues() {
   if (
     els.leaguesCount
   ) {
-    els.leaguesCount
-      .textContent =
-        groups.length;
+    els.leaguesCount.textContent =
+      groups.length;
   }
 
-  els.leaguesList
-    .innerHTML =
-      groups
-        .map(
-          group => `
-            <div class="league-card">
+  els.leaguesList.innerHTML =
+    groups
+      .map(
+        group => `
+          <div class="league-card">
 
-              <div>
+            <div>
 
-                <strong>
-                  ${escapeHtml(
-                    group.league
-                  )}
-                </strong>
+              <strong>
+                ${escapeHtml(group.league)}
+              </strong>
 
-                <small>
-                  ${escapeHtml(
-                    group.country
-                  )}
-                </small>
-
-              </div>
-
-              <span class="count">
-                ${group.games.length}
-              </span>
+              <small>
+                ${escapeHtml(group.country)}
+              </small>
 
             </div>
-          `
-        )
-        .join("");
+
+            <span class="count">
+              ${group.games.length}
+            </span>
+
+          </div>
+        `
+      )
+      .join("");
 }
 
-
 /* =========================================================
-   RADIO BROWSER
+   BUSCA DE STREAM
 ========================================================= */
 
 function stationScore(
@@ -2550,122 +1944,85 @@ function stationScore(
       station.name
     );
 
-  const stationState =
-    normalizeText(
-      station.state
-    );
-
-  let score =
-    0;
+  let score = 0;
 
   const targets = [
     radio.name,
     radio.search,
-    ...(
-      radio.aliases ||
-      []
-    )
+    ...(radio.aliases || [])
   ]
     .map(
       normalizeText
     );
 
-  targets
-    .forEach(
-      target => {
-        if (
-          stationName ===
-          target
-        ) {
-          score +=
-            100;
-        }
-
-        if (
-          stationName.includes(
-            target
-          )
-        ) {
-          score +=
-            50;
-        }
-
-        const words =
-          target
-            .split(" ")
-            .filter(
-              word =>
-                word.length >
-                2
-            );
-
-        words
-          .forEach(
-            word => {
-              if (
-                stationName.includes(
-                  word
-                )
-              ) {
-                score +=
-                  6;
-              }
-            }
-          );
-      }
-    );
-
-  const cityState =
-    normalizeText(
-      radio.city
-    );
-
-  if (
-    stationState &&
-    cityState.includes(
-      stationState
-    )
+  for (
+    const target of targets
   ) {
-    score +=
-      10;
-  }
-
-  if (
-    station.codec
-  ) {
-    const codec =
-      String(
-        station.codec
-      )
-        .toLowerCase();
+    if (
+      !target
+    ) {
+      continue;
+    }
 
     if (
-      codec.includes(
-        "mp3"
-      ) ||
-      codec.includes(
-        "aac"
-      )
+      stationName === target
     ) {
-      score +=
-        10;
+      score += 120;
+    }
+
+    if (
+      stationName.includes(target)
+    ) {
+      score += 60;
+    }
+
+    const words =
+      target
+        .split(" ")
+        .filter(
+          word =>
+            word.length > 2
+        );
+
+    for (
+      const word of words
+    ) {
+      if (
+        stationName.includes(word)
+      ) {
+        score += 7;
+      }
     }
   }
 
+  const codec =
+    String(
+      station.codec || ""
+    )
+      .toLowerCase();
+
   if (
-    station.hls ===
-    0
+    codec.includes("mp3") ||
+    codec.includes("aac")
   ) {
-    score +=
-      6;
+    score += 15;
   }
 
   if (
-    station.lastcheckok ===
-    1
+    station.lastcheckok === 1
   ) {
-    score +=
-      15;
+    score += 25;
+  }
+
+  if (
+    station.url_resolved &&
+    String(
+      station.url_resolved
+    ).startsWith(
+      "https://"
+    )
+  ) {
+    score += 20;
   }
 
   if (
@@ -2676,123 +2033,133 @@ function stationScore(
         Number(
           station.votes
         ),
-        20
+        25
       );
   }
 
   return score;
 }
 
-
 async function searchRadioBrowser(
   radio
 ) {
-  const query =
-    encodeURIComponent(
-      radio.search
-    );
+  const searches = [
+    radio.search,
+    ...(radio.aliases || [])
+  ]
+    .filter(Boolean);
 
-  let lastError =
-    null;
+  let lastError = null;
 
   for (
     const server
     of RADIO_BROWSER_SERVERS
   ) {
-    try {
-      const url =
-        `${server}/json/stations/search?name=${query}&countrycode=BR&hidebroken=true&order=votes&reverse=true&limit=20`;
-
-      const response =
-        await fetch(
-          url,
-          {
-            cache:
-              "no-store"
-          }
-        );
-
-      if (
-        !response.ok
-      ) {
-        throw new Error(
-          `Rádio API ${response.status}`
-        );
-      }
-
-      const list =
-        await response.json();
-
-      if (
-        !Array.isArray(
-          list
-        ) ||
-        !list.length
-      ) {
-        continue;
-      }
-
-      const candidates =
-        list
-
-          .filter(
-            item => {
-              const stream =
-                item.url_resolved ||
-                item.url;
-
-              return (
-                stream &&
-                String(
-                  stream
-                ).startsWith(
-                  "https://"
-                )
-              );
-            }
-          )
-
-          .sort(
-            (
-              a,
-              b
-            ) =>
-              stationScore(
-                b,
-                radio
-              ) -
-              stationScore(
-                a,
-                radio
-              )
+    for (
+      const search
+      of searches
+    ) {
+      try {
+        const query =
+          encodeURIComponent(
+            search
           );
 
-      const best =
-        candidates[0];
+        const url =
+          `${server}/json/stations/search?name=${query}&countrycode=BR&hidebroken=true&order=votes&reverse=true&limit=30`;
 
-      if (!best) {
-        continue;
+        const response =
+          await fetch(
+            url,
+            {
+              cache: "no-store"
+            }
+          );
+
+        if (
+          !response.ok
+        ) {
+          throw new Error(
+            `Radio Browser ${response.status}`
+          );
+        }
+
+        const list =
+          await response.json();
+
+        if (
+          !Array.isArray(list) ||
+          !list.length
+        ) {
+          continue;
+        }
+
+        const candidates =
+          list
+            .filter(
+              item => {
+                const stream =
+                  item.url_resolved ||
+                  item.url;
+
+                return (
+                  stream &&
+                  String(stream)
+                    .startsWith(
+                      "https://"
+                    )
+                );
+              }
+            )
+            .sort(
+              (a, b) =>
+                stationScore(
+                  b,
+                  radio
+                ) -
+                stationScore(
+                  a,
+                  radio
+                )
+            );
+
+        const best =
+          candidates[0];
+
+        if (!best) {
+          continue;
+        }
+
+        /*
+          Evita pegar uma rádio
+          completamente diferente.
+        */
+
+        if (
+          stationScore(
+            best,
+            radio
+          ) < 20
+        ) {
+          continue;
+        }
+
+        return {
+          stream:
+            best.url_resolved ||
+            best.url,
+
+          name:
+            best.name ||
+            radio.name
+        };
+
+      } catch (
+        error
+      ) {
+        lastError =
+          error;
       }
-
-      return {
-        stream:
-          best.url_resolved ||
-          best.url,
-
-        resolvedName:
-          best.name ||
-          radio.name,
-
-        codec:
-          best.codec ||
-          ""
-      };
-
-    } catch (
-      error
-    ) {
-      lastError =
-        error;
     }
   }
 
@@ -2803,7 +2170,6 @@ async function searchRadioBrowser(
     )
   );
 }
-
 
 /* =========================================================
    RÁDIOS
@@ -2816,71 +2182,67 @@ function renderRadios() {
     return;
   }
 
-  els.radioList
-    .innerHTML =
-      radios
-        .map(
-          (
-            radio,
-            index
-          ) => {
+  els.radioList.innerHTML =
+    radios
+      .map(
+        (
+          radio,
+          index
+        ) => {
+          const playing =
+            state.currentRadioIndex === index &&
+            els.radioAudio &&
+            !els.radioAudio.paused;
 
-            const playing =
-              state.currentRadioIndex ===
-                index &&
-              els.radioAudio &&
-              !els.radioAudio.paused;
+          const loading =
+            state.radioResolving.has(
+              index
+            );
 
-            const loading =
-              state.radioResolving.has(
-                index
-              );
+          return `
+            <div class="radio-card">
 
-            return `
-              <div class="radio-card">
+              <div class="radio-logo-fallback">
+                📻
+              </div>
 
-                <div class="radio-logo-fallback">
-                  📻
-                </div>
+              <div class="radio-info">
 
-                <div class="radio-info">
+                <strong>
+                  ${escapeHtml(
+                    radio.name
+                  )}
+                </strong>
 
-                  <strong>
-                    ${escapeHtml(
-                      radio.name
-                    )}
-                  </strong>
-
-                  <span>
-                    ${escapeHtml(
-                      radio.city
-                    )}
-                  </span>
-
-                </div>
-
-                <button
-                  class="radio-play"
-                  type="button"
-                  data-radio-index="${index}"
-                  ${loading ? "disabled" : ""}
-                >
-                  ${
-                    loading
-                      ? "BUSCANDO..."
-                      : playing
-                        ? "⏸ PAUSAR"
-                        : "▶ OUVIR"
-                  }
-                </button>
+                <span>
+                  ${escapeHtml(
+                    radio.city
+                  )}
+                </span>
 
               </div>
-            `;
-          }
-        )
-        .join("");
-}
 
+              <button
+                class="radio-play"
+                type="button"
+                data-radio-index="${index}"
+                ${loading ? "disabled" : ""}
+              >
+                ${
+                  loading
+                    ? "BUSCANDO..."
+                    : playing
+                      ? "⏸ PAUSAR"
+                      : "▶ OUVIR"
+                }
+              </button>
+
+            </div>
+          `;
+        }
+      )
+      .join("");
+}
 
 function setNowPlaying(
   radio
@@ -2898,36 +2260,30 @@ function setNowPlaying(
   if (
     els.radioNowName
   ) {
-    els.radioNowName
-      .textContent =
-        radio.name;
+    els.radioNowName.textContent =
+      radio.name;
   }
 
   if (
     els.radioNowCity
   ) {
-    els.radioNowCity
-      .textContent =
-        radio.city;
+    els.radioNowCity.textContent =
+      radio.city;
   }
 
   if (
     els.radioPauseBtn
   ) {
-    els.radioPauseBtn
-      .textContent =
-        "⏸";
+    els.radioPauseBtn.textContent =
+      "⏸";
   }
 }
-
 
 async function resolveRadioStream(
   index
 ) {
   const radio =
-    radios[
-      index
-    ];
+    radios[index];
 
   if (!radio) {
     throw new Error(
@@ -2935,23 +2291,27 @@ async function resolveRadioStream(
     );
   }
 
+  /*
+    Stream fixo das rádios
+    que já funcionaram.
+  */
+
   if (
     radio.stream
   ) {
-    return (
-      radio.stream
-    );
+    return radio.stream;
   }
+
+  /*
+    Stream descoberto antes.
+  */
 
   const saved =
     localStorage.getItem(
-      `m-radio-stream-${index}`
+      `m-radio-v2-${index}-${normalizeText(radio.name)}`
     );
 
   if (saved) {
-    radio.stream =
-      saved;
-
     return saved;
   }
 
@@ -2960,25 +2320,19 @@ async function resolveRadioStream(
       radio
     );
 
-  radio.stream =
-    result.stream;
-
   localStorage.setItem(
-    `m-radio-stream-${index}`,
+    `m-radio-v2-${index}-${normalizeText(radio.name)}`,
     result.stream
   );
 
   return result.stream;
 }
 
-
 async function playRadio(
   index
 ) {
   const radio =
-    radios[
-      index
-    ];
+    radios[index];
 
   if (
     !radio ||
@@ -2988,13 +2342,12 @@ async function playRadio(
   }
 
   /*
-    Se clicou na rádio que
-    já está tocando:
+    Pausar se clicar na
+    mesma rádio tocando.
   */
 
   if (
-    state.currentRadioIndex ===
-      index &&
+    state.currentRadioIndex === index &&
     !els.radioAudio.paused
   ) {
     els.radioAudio.pause();
@@ -3002,9 +2355,8 @@ async function playRadio(
     if (
       els.radioPauseBtn
     ) {
-      els.radioPauseBtn
-        .textContent =
-          "▶";
+      els.radioPauseBtn.textContent =
+        "▶";
     }
 
     renderRadios();
@@ -3012,10 +2364,9 @@ async function playRadio(
     return;
   }
 
-  state.radioResolving
-    .add(
-      index
-    );
+  state.radioResolving.add(
+    index
+  );
 
   renderRadios();
 
@@ -3024,10 +2375,6 @@ async function playRadio(
       await resolveRadioStream(
         index
       );
-
-    /*
-      interrompe a anterior
-    */
 
     els.radioAudio.pause();
 
@@ -3058,45 +2405,37 @@ async function playRadio(
     );
 
     /*
-      Se um stream salvo morreu,
-      remove para na próxima
-      tentativa pesquisar de novo.
+      Apaga somente o
+      stream automático.
+      Nunca mexe nos streams
+      fixos das 15 que funcionaram.
     */
 
-    localStorage.removeItem(
-      `m-radio-stream-${index}`
-    );
-
     if (
-      !radio.stream ||
-      !radio.stream.startsWith(
-        "https://"
-      )
+      !radio.stream
     ) {
-      radio.stream =
-        null;
+      localStorage.removeItem(
+        `m-radio-v2-${index}-${normalizeText(radio.name)}`
+      );
     }
 
     alert(
-      `Não consegui conectar à ${radio.name} agora. Toque novamente para procurar outra transmissão.`
+      `A transmissão da ${radio.name} não respondeu agora.`
     );
 
   } finally {
-    state.radioResolving
-      .delete(
-        index
-      );
+    state.radioResolving.delete(
+      index
+    );
 
     renderRadios();
   }
 }
 
-
 function toggleRadioPause() {
   if (
     !els.radioAudio ||
-    state.currentRadioIndex ===
-      null
+    state.currentRadioIndex === null
   ) {
     return;
   }
@@ -3111,9 +2450,8 @@ function toggleRadioPause() {
           if (
             els.radioPauseBtn
           ) {
-            els.radioPauseBtn
-              .textContent =
-                "⏸";
+            els.radioPauseBtn.textContent =
+              "⏸";
           }
 
           renderRadios();
@@ -3124,94 +2462,54 @@ function toggleRadioPause() {
       );
 
   } else {
-    els.radioAudio
-      .pause();
+    els.radioAudio.pause();
 
     if (
       els.radioPauseBtn
     ) {
-      els.radioPauseBtn
-        .textContent =
-          "▶";
+      els.radioPauseBtn.textContent =
+        "▶";
     }
 
     renderRadios();
   }
 }
 
-
 /* =========================================================
-   ERROS DO PLAYER
+   EVENTOS DO PLAYER
 ========================================================= */
 
 if (
   els.radioAudio
 ) {
-  els.radioAudio
-    .addEventListener(
-      "error",
-      () => {
-        if (
-          state.currentRadioIndex ===
-          null
-        ) {
-          return;
-        }
-
-        const index =
-          state.currentRadioIndex;
-
-        /*
-          força nova busca
-          na próxima tentativa
-        */
-
-        localStorage.removeItem(
-          `m-radio-stream-${index}`
-        );
-
-        radios[
-          index
-        ].stream =
-          null;
-
-        renderRadios();
+  els.radioAudio.addEventListener(
+    "playing",
+    () => {
+      if (
+        els.radioPauseBtn
+      ) {
+        els.radioPauseBtn.textContent =
+          "⏸";
       }
-    );
 
-  els.radioAudio
-    .addEventListener(
-      "playing",
-      () => {
-        if (
-          els.radioPauseBtn
-        ) {
-          els.radioPauseBtn
-            .textContent =
-              "⏸";
-        }
+      renderRadios();
+    }
+  );
 
-        renderRadios();
+  els.radioAudio.addEventListener(
+    "pause",
+    () => {
+      if (
+        els.radioPauseBtn
+      ) {
+        els.radioPauseBtn.textContent =
+          "▶";
       }
-    );
 
-  els.radioAudio
-    .addEventListener(
-      "pause",
-      () => {
-        if (
-          els.radioPauseBtn
-        ) {
-          els.radioPauseBtn
-            .textContent =
-              "▶";
-        }
-
-        renderRadios();
-      }
-    );
+      renderRadios();
+    }
+  );
 }
-
 
 /* =========================================================
    RENDER GERAL
@@ -3219,25 +2517,17 @@ if (
 
 function renderAll() {
   renderPregame();
-
   renderHome();
-
   renderLive();
-
   renderFavorites();
-
   renderLeagues();
-
   renderNews();
-
   renderTicker();
-
   renderRadios();
 }
 
-
 /* =========================================================
-   RELÓGIOS
+   RELÓGIO VISUAL
 ========================================================= */
 
 function updateVisibleClocks() {
@@ -3248,16 +2538,15 @@ function updateVisibleClocks() {
     .forEach(
       node => {
         const game =
-          state.games
-            .find(
-              item =>
-                String(
-                  item.id
-                ) ===
-                String(
-                  node.dataset.clockId
-                )
-            );
+          state.games.find(
+            item =>
+              String(
+                item.id
+              ) ===
+              String(
+                node.dataset.clockId
+              )
+          );
 
         if (game) {
           node.textContent =
@@ -3269,20 +2558,16 @@ function updateVisibleClocks() {
     );
 }
 
-
 /* =========================================================
-   API DOS JOGOS
+   API
 ========================================================= */
 
-async function request(
-  path
-) {
+async function request(path) {
   const response =
     await fetch(
       `${API_BASE}${path}`,
       {
-        cache:
-          "no-store"
+        cache: "no-store"
       }
     );
 
@@ -3297,13 +2582,11 @@ async function request(
   return response.json();
 }
 
-
 async function loadGames() {
   const date =
     todayBR();
 
-  let data =
-    null;
+  let data = null;
 
   try {
     data =
@@ -3326,22 +2609,18 @@ async function loadGames() {
   }
 
   state.games =
-    extractArray(
-      data
-    )
+    extractArray(data)
       .map(
         normalizeGame
       );
 
   state.live =
-    state.games
-      .filter(
-        isLive
-      );
+    state.games.filter(
+      isLive
+    );
 
   syncAllClocks();
 }
-
 
 /* =========================================================
    FAVORITOS
@@ -3350,7 +2629,6 @@ async function loadGames() {
 function saveFavorites() {
   localStorage.setItem(
     "m-esportes-favorites",
-
     JSON.stringify(
       [
         ...state.favorites
@@ -3359,28 +2637,16 @@ function saveFavorites() {
   );
 }
 
-
-function toggleFavorite(
-  id
-) {
+function toggleFavorite(id) {
   id =
-    String(
-      id
-    );
+    String(id);
 
   if (
-    state.favorites.has(
-      id
-    )
+    state.favorites.has(id)
   ) {
-    state.favorites.delete(
-      id
-    );
-
+    state.favorites.delete(id);
   } else {
-    state.favorites.add(
-      id
-    );
+    state.favorites.add(id);
   }
 
   saveFavorites();
@@ -3388,9 +2654,8 @@ function toggleFavorite(
   renderAll();
 }
 
-
 /* =========================================================
-   NOTIFICAÇÃO LOCAL
+   NOTIFICAÇÕES
 ========================================================= */
 
 function notify(
@@ -3418,7 +2683,6 @@ function notify(
       title,
       {
         body,
-
         icon:
           "./icon-192.png"
       }
@@ -3427,12 +2691,9 @@ function notify(
   } catch (
     error
   ) {
-    console.warn(
-      error
-    );
+    console.warn(error);
   }
 }
-
 
 async function requestNotifications() {
   unlockGoalAudio();
@@ -3461,61 +2722,52 @@ async function requestNotifications() {
     if (
       els.notificationBtn
     ) {
-      els.notificationBtn
-        .textContent =
-          "NOTIFICAÇÕES ATIVADAS";
+      els.notificationBtn.textContent =
+        "NOTIFICAÇÕES ATIVADAS";
     }
 
   } else {
     if (
       els.notificationBtn
     ) {
-      els.notificationBtn
-        .textContent =
-          "NOTIFICAÇÕES BLOQUEADAS";
+      els.notificationBtn.textContent =
+        "NOTIFICAÇÕES BLOQUEADAS";
     }
   }
 }
 
-
 /* =========================================================
-   CONFIGURAÇÕES DE ALERTA
+   ALERTAS
 ========================================================= */
 
 function saveAlertSettings() {
   alertSettings.goal =
     Boolean(
-      els.alertGoal
-        ?.checked
+      els.alertGoal?.checked
     );
 
   alertSettings.start =
     Boolean(
-      els.alertStart
-        ?.checked
+      els.alertStart?.checked
     );
 
   alertSettings.halftime =
     Boolean(
-      els.alertHalftime
-        ?.checked
+      els.alertHalftime?.checked
     );
 
   alertSettings.final =
     Boolean(
-      els.alertFinal
-        ?.checked
+      els.alertFinal?.checked
     );
 
   localStorage.setItem(
     "m-esportes-alerts",
-
     JSON.stringify(
       alertSettings
     )
   );
 }
-
 
 function loadAlertControls() {
   if (
@@ -3547,7 +2799,6 @@ function loadAlertControls() {
   }
 }
 
-
 /* =========================================================
    SERVICE WORKER
 ========================================================= */
@@ -3569,8 +2820,7 @@ async function registerServiceWorker() {
         .register(
           "./sw.js",
           {
-            scope:
-              "./"
+            scope: "./"
           }
         );
 
@@ -3591,9 +2841,8 @@ async function registerServiceWorker() {
   }
 }
 
-
 /* =========================================================
-   ATUALIZAR
+   ATUALIZAÇÃO
 ========================================================= */
 
 async function refreshAll(
@@ -3617,7 +2866,6 @@ async function refreshAll(
       !state.scoreSystemStarted
     ) {
       initializeScoreMemory();
-
     } else {
       checkGoals();
     }
@@ -3637,9 +2885,8 @@ async function refreshAll(
     if (
       els.tickerTrack
     ) {
-      els.tickerTrack
-        .textContent =
-          "M ESPORTES • Não foi possível atualizar os jogos agora.";
+      els.tickerTrack.textContent =
+        "M ESPORTES • Não foi possível atualizar os jogos agora.";
     }
 
   } finally {
@@ -3655,7 +2902,6 @@ async function refreshAll(
   }
 }
 
-
 /* =========================================================
    NAVEGAÇÃO
 ========================================================= */
@@ -3667,116 +2913,106 @@ function setupNavigation() {
     )
     .forEach(
       button => {
-        button
-          .addEventListener(
-            "click",
-            () => {
-              unlockGoalAudio();
+        button.addEventListener(
+          "click",
+          () => {
+            unlockGoalAudio();
 
-              const page =
-                button.dataset.page;
+            const page =
+              button.dataset.page;
 
-              document
-                .querySelectorAll(
-                  ".nav-item"
-                )
-                .forEach(
-                  item =>
-                    item.classList.remove(
-                      "active"
-                    )
-                );
+            document
+              .querySelectorAll(
+                ".nav-item"
+              )
+              .forEach(
+                item =>
+                  item.classList.remove(
+                    "active"
+                  )
+              );
 
-              document
-                .querySelectorAll(
-                  ".page"
-                )
-                .forEach(
-                  item =>
-                    item.classList.remove(
-                      "active"
-                    )
-                );
+            document
+              .querySelectorAll(
+                ".page"
+              )
+              .forEach(
+                item =>
+                  item.classList.remove(
+                    "active"
+                  )
+              );
 
-              button
-                .classList
-                .add(
-                  "active"
-                );
+            button
+              .classList
+              .add(
+                "active"
+              );
 
-              document
-                .getElementById(
-                  `page-${page}`
-                )
-                ?.classList
-                .add(
-                  "active"
-                );
+            document
+              .getElementById(
+                `page-${page}`
+              )
+              ?.classList
+              .add(
+                "active"
+              );
 
-              window.scrollTo({
-                top:
-                  0,
-
-                behavior:
-                  "smooth"
-              });
-            }
-          );
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth"
+            });
+          }
+        );
       }
     );
 }
-
 
 /* =========================================================
    CLIQUES
 ========================================================= */
 
-document
-  .addEventListener(
-    "click",
-    event => {
-      unlockGoalAudio();
+document.addEventListener(
+  "click",
+  event => {
+    unlockGoalAudio();
 
-      const favoriteButton =
-        event.target
-          .closest(
-            "[data-favorite]"
-          );
+    const favoriteButton =
+      event.target.closest(
+        "[data-favorite]"
+      );
 
-      if (
+    if (
+      favoriteButton
+    ) {
+      toggleFavorite(
         favoriteButton
-      ) {
-        toggleFavorite(
-          favoriteButton
-            .dataset
-            .favorite
-        );
+          .dataset
+          .favorite
+      );
 
-        return;
-      }
-
-
-      const radioButton =
-        event.target
-          .closest(
-            "[data-radio-index]"
-          );
-
-      if (
-        radioButton &&
-        !radioButton.disabled
-      ) {
-        playRadio(
-          Number(
-            radioButton
-              .dataset
-              .radioIndex
-          )
-        );
-      }
+      return;
     }
-  );
 
+    const radioButton =
+      event.target.closest(
+        "[data-radio-index]"
+      );
+
+    if (
+      radioButton &&
+      !radioButton.disabled
+    ) {
+      playRadio(
+        Number(
+          radioButton
+            .dataset
+            .radioIndex
+        )
+      );
+    }
+  }
+);
 
 /* =========================================================
    BOTÕES
@@ -3785,38 +3021,30 @@ document
 if (
   els.refreshBtn
 ) {
-  els.refreshBtn
-    .addEventListener(
-      "click",
-      () =>
-        refreshAll(
-          true
-        )
-    );
+  els.refreshBtn.addEventListener(
+    "click",
+    () =>
+      refreshAll(true)
+  );
 }
-
 
 if (
   els.notificationBtn
 ) {
-  els.notificationBtn
-    .addEventListener(
-      "click",
-      requestNotifications
-    );
+  els.notificationBtn.addEventListener(
+    "click",
+    requestNotifications
+  );
 }
-
 
 if (
   els.radioPauseBtn
 ) {
-  els.radioPauseBtn
-    .addEventListener(
-      "click",
-      toggleRadioPause
-    );
+  els.radioPauseBtn.addEventListener(
+    "click",
+    toggleRadioPause
+  );
 }
-
 
 /* =========================================================
    CHECKBOXES
@@ -3828,19 +3056,15 @@ if (
   els.alertHalftime,
   els.alertFinal
 ]
-  .filter(
-    Boolean
-  )
+  .filter(Boolean)
   .forEach(
     input => {
-      input
-        .addEventListener(
-          "change",
-          saveAlertSettings
-        );
+      input.addEventListener(
+        "change",
+        saveAlertSettings
+      );
     }
   );
-
 
 /* =========================================================
    INICIAR
@@ -3854,10 +3078,7 @@ registerServiceWorker();
 
 renderRadios();
 
-refreshAll(
-  true
-);
-
+refreshAll(true);
 
 /* relógio */
 
@@ -3866,13 +3087,10 @@ setInterval(
   1000
 );
 
-
-/* jogos */
+/* placares */
 
 setInterval(
   () =>
-    refreshAll(
-      false
-    ),
+    refreshAll(false),
   20000
 );
