@@ -1805,7 +1805,14 @@ function choosePregameGame() {
         game.status === "NS"
     );
 
-  const t30 =
+  const live =
+    state.games.filter(
+      game =>
+        isLive(game)
+    );
+
+  /* T-30 de jogo importante */
+  const importantT30 =
     upcoming
       .filter(
         game => {
@@ -1815,26 +1822,32 @@ function choosePregameGame() {
           return (
             minutes !== null &&
             minutes >= 0 &&
-            minutes <= 30
+            minutes <= 30 &&
+            gameImportance(game) >= 70
           );
         }
       )
       .sort(compareImportantGames);
 
-  if (t30.length) {
-    return t30[0];
+  if (importantT30.length) {
+    return importantT30[0];
   }
 
-  const live =
-    state.games
-      .filter(isLive)
+  /* jogo ao vivo só entra se for importante */
+  const importantLive =
+    live
+      .filter(
+        game =>
+          gameImportance(game) >= 70
+      )
       .sort(compareImportantGames);
 
-  if (live.length) {
-    return live[0];
+  if (importantLive.length) {
+    return importantLive[0];
   }
 
-  const future =
+  /* próximo jogo importante */
+  const importantFuture =
     upcoming
       .filter(
         game => {
@@ -1842,16 +1855,56 @@ function choosePregameGame() {
             minutesToKickoff(game);
 
           return (
-            minutes === null ||
-            minutes >= 0
+            (
+              minutes === null ||
+              minutes >= 0
+            ) &&
+            gameImportance(game) >= 70
           );
         }
       )
       .sort(compareImportantGames);
 
+  if (importantFuture.length) {
+    return importantFuture[0];
+  }
+
+  /* preferência por qualquer jogo brasileiro */
+  const brazilGame =
+    state.games
+      .filter(
+        game => {
+          const text =
+            normalizeText(
+              `${game.country} ${game.league}`
+            );
+
+          return (
+            text.includes("brasil") ||
+            text.includes("brasileirao") ||
+            text.includes("serie b") ||
+            text.includes("serie c") ||
+            text.includes("gauchao")
+          );
+        }
+      )
+      .sort(compareImportantGames);
+
+  if (brazilGame.length) {
+    return brazilGame[0];
+  }
+
+  /*
+    Só se realmente não houver
+    nenhum destaque melhor.
+  */
   return (
-    future[0] ||
-    state.games[0] ||
+    upcoming
+      .slice()
+      .sort(compareImportantGames)[0] ||
+    live
+      .slice()
+      .sort(compareImportantGames)[0] ||
     null
   );
 }
