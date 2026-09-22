@@ -151,12 +151,8 @@ goalAudio.volume = 1;
 /* =========================================================
    RÁDIOS
 
-   IMPORTANTE:
-   Nesta etapa NÃO abrimos sites externos.
-
-   stream null =
-   botão fica desativado até colocarmos
-   um endereço de áudio direto validado.
+   Nesta etapa nenhuma rádio abre página externa.
+   As que ainda não têm stream direto ficam desativadas.
 ========================================================= */
 
 const radios = [
@@ -728,27 +724,21 @@ function numericScore(value) {
     : 0;
 }
 
+/*
+  PRÉ-JOGO:
+  se a API ainda não mandou placar,
+  exibimos 0 x 0.
+*/
 function scoreValue(
   value,
   game
 ) {
   if (
-    game?.status === "NS" &&
-    (
-      value === null ||
-      value === undefined ||
-      value === ""
-    )
-  ) {
-    return "-";
-  }
-
-  if (
     value === null ||
     value === undefined ||
     value === ""
   ) {
-    return "-";
+    return "0";
   }
 
   return value;
@@ -1476,7 +1466,7 @@ function renderPregame() {
       </div>
 
       <div class="score-big">
-        x
+        0 x 0
       </div>
     `;
   }
@@ -2035,7 +2025,7 @@ async function playRadio(
     );
 
     alert(
-      "Esta transmissão não respondeu. Vamos substituir por outro stream."
+      "Esta transmissão não respondeu."
     );
   }
 }
