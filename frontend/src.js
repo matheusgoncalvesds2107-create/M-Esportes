@@ -1411,41 +1411,496 @@ function renderGames(
 }
 
 /* =========================================================
-   DESTAQUE
+   PRÉ-JOGO AUTOMÁTICO T-30
 ========================================================= */
 
-function choosePregameGame() {
+const PRE_GAME_SPECIAL_TEAMS = [
+  "chelsea",
+  "como"
+];
+
+const PRE_GAME_BIG_TEAMS = [
+  "flamengo",
+  "palmeiras",
+  "corinthians",
+  "sao paulo",
+  "santos",
+  "gremio",
+  "internacional",
+  "atletico mineiro",
+  "cruzeiro",
+  "vasco",
+  "fluminense",
+  "botafogo",
+  "bahia",
+  "vitoria",
+  "athletico paranaense",
+  "coritiba",
+  "arsenal",
+  "liverpool",
+  "manchester city",
+  "manchester united",
+  "tottenham",
+  "inter",
+  "milan",
+  "juventus",
+  "napoli",
+  "roma",
+  "lazio"
+];
+
+const PRE_GAME_BRAZIL_CLASSICS = [
+  ["gremio", "internacional"],
+  ["flamengo", "fluminense"],
+  ["flamengo", "vasco"],
+  ["flamengo", "botafogo"],
+  ["vasco", "fluminense"],
+  ["vasco", "botafogo"],
+  ["fluminense", "botafogo"],
+  ["corinthians", "palmeiras"],
+  ["corinthians", "sao paulo"],
+  ["corinthians", "santos"],
+  ["palmeiras", "sao paulo"],
+  ["palmeiras", "santos"],
+  ["sao paulo", "santos"],
+  ["atletico mineiro", "cruzeiro"],
+  ["bahia", "vitoria"],
+  ["athletico paranaense", "coritiba"],
+  ["sport", "nautico"],
+  ["sport", "santa cruz"],
+  ["nautico", "santa cruz"],
+  ["ceara", "fortaleza"],
+  ["paysandu", "remo"],
+  ["goias", "vila nova"],
+  ["avai", "figueirense"],
+  ["ponte preta", "guarani"],
+  ["juventude", "caxias"],
+  ["brasil de pelotas", "pelotas"]
+];
+
+function teamKey(name = "") {
+  return normalizeText(name)
+    .replace(/\bfc\b/g, "")
+    .replace(/\bec\b/g, "")
+    .replace(/\bsc\b/g, "")
+    .replace(/\bclube\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function teamMatches(name, target) {
+  const a = teamKey(name);
+  const b = teamKey(target);
+
   return (
-    state.games.find(
-      game =>
-        [
-          "1H",
-          "2H"
-        ].includes(
-          game.status
+    a === b ||
+    a.includes(b) ||
+    b.includes(a)
+  );
+}
+
+function isBrazilianClassic(game) {
+  return PRE_GAME_BRAZIL_CLASSICS.some(
+    pair => {
+      return (
+        (
+          teamMatches(game.home, pair[0]) &&
+          teamMatches(game.away, pair[1])
+        ) ||
+        (
+          teamMatches(game.home, pair[1]) &&
+          teamMatches(game.away, pair[0])
         )
-    ) ||
+      );
+    }
+  );
+}
 
-    state.games.find(
-      game =>
-        game.status === "HT"
-    ) ||
+function competitionImportance(game) {
+  const league = normalizeText(game.league);
+  const country = normalizeText(game.country);
 
-    state.games.find(
+  let points = 0;
+
+  if (
+    league.includes("brasileirao") ||
+    (
+      league.includes("serie a") &&
+      country.includes("brasil")
+    )
+  ) {
+    points += 120;
+  }
+
+  if (league.includes("libertadores")) {
+    points += 118;
+  }
+
+  if (league.includes("champions")) {
+    points += 116;
+  }
+
+  if (league.includes("copa do brasil")) {
+    points += 112;
+  }
+
+  if (league.includes("premier league")) {
+    points += 110;
+  }
+
+  if (
+    league.includes("serie a") &&
+    country.includes("ital")
+  ) {
+    points += 106;
+  }
+
+  if (
+    league.includes("la liga") ||
+    league.includes("laliga")
+  ) {
+    points += 103;
+  }
+
+  if (league.includes("bundesliga")) {
+    points += 101;
+  }
+
+  if (league.includes("ligue 1")) {
+    points += 99;
+  }
+
+  if (
+    league.includes("sudamericana") ||
+    league.includes("sul americana")
+  ) {
+    points += 96;
+  }
+
+  if (
+    league.includes("serie b") &&
+    country.includes("brasil")
+  ) {
+    points += 82;
+  }
+
+  if (
+    league.includes("serie c") &&
+    country.includes("brasil")
+  ) {
+    points += 72;
+  }
+
+  if (league.includes("gauchao")) {
+    points += 68;
+  }
+
+  return points;
+}
+
+function gameImportance(game) {
+  let points =
+    competitionImportance(game);
+
+  const teams = [
+    game.home,
+    game.away
+  ];
+
+  for (const team of teams) {
+    if (
+      PRE_GAME_SPECIAL_TEAMS.some(
+        target =>
+          teamMatches(team, target)
+      )
+    ) {
+      points += 90;
+    }
+
+    if (
+      PRE_GAME_BIG_TEAMS.some(
+        target =>
+          teamMatches(team, target)
+      )
+    ) {
+      points += 22;
+    }
+  }
+
+  if (isBrazilianClassic(game)) {
+    points += 155;
+  }
+
+  return points;
+}
+
+function gameKickoffMs(game) {
+  if (game.date) {
+    const parsed =
+      new Date(game.date).getTime();
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  if (
+    /^\d{2}:\d{2}$/.test(
+      String(game.start || "")
+    )
+  ) {
+    const [
+      hour,
+      minute
+    ] =
+      String(game.start)
+        .split(":")
+        .map(Number);
+
+    const today =
+      todayBR();
+
+    const parsed =
+      new Date(
+        `${today}T${pad2(hour)}:${pad2(minute)}:00-03:00`
+      ).getTime();
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function minutesToKickoff(game) {
+  const kickoff =
+    gameKickoffMs(game);
+
+  if (!Number.isFinite(kickoff)) {
+    return null;
+  }
+
+  return Math.ceil(
+    (
+      kickoff -
+      Date.now()
+    ) / 60000
+  );
+}
+
+function compareImportantGames(a, b) {
+  const difference =
+    gameImportance(b) -
+    gameImportance(a);
+
+  if (difference !== 0) {
+    return difference;
+  }
+
+  const aTime =
+    gameKickoffMs(a) ??
+    Number.MAX_SAFE_INTEGER;
+
+  const bTime =
+    gameKickoffMs(b) ??
+    Number.MAX_SAFE_INTEGER;
+
+  return aTime - bTime;
+}
+
+function choosePregameGame() {
+  const upcoming =
+    state.games.filter(
       game =>
         game.status === "NS"
-    ) ||
+    );
 
+  const t30 =
+    upcoming
+      .filter(
+        game => {
+          const minutes =
+            minutesToKickoff(game);
+
+          return (
+            minutes !== null &&
+            minutes >= 0 &&
+            minutes <= 30
+          );
+        }
+      )
+      .sort(compareImportantGames);
+
+  if (t30.length) {
+    return t30[0];
+  }
+
+  const live =
+    state.games
+      .filter(isLive)
+      .sort(compareImportantGames);
+
+  if (live.length) {
+    return live[0];
+  }
+
+  const future =
+    upcoming
+      .filter(
+        game => {
+          const minutes =
+            minutesToKickoff(game);
+
+          return (
+            minutes === null ||
+            minutes >= 0
+          );
+        }
+      )
+      .sort(compareImportantGames);
+
+  return (
+    future[0] ||
     state.games[0] ||
-
     null
   );
 }
 
-function pregameLogo(
-  url,
-  team
-) {
+function chooseRoundupGame(mainGame) {
+  if (!mainGame) {
+    return null;
+  }
+
+  const mainTime =
+    gameKickoffMs(mainGame);
+
+  return (
+    state.games
+      .filter(
+        game =>
+          String(game.id) !==
+          String(mainGame.id)
+      )
+      .filter(
+        game =>
+          game.status === "NS" ||
+          isLive(game)
+      )
+      .filter(
+        game => {
+          if (
+            !Number.isFinite(mainTime)
+          ) {
+            return true;
+          }
+
+          const time =
+            gameKickoffMs(game);
+
+          if (!Number.isFinite(time)) {
+            return false;
+          }
+
+          return (
+            Math.abs(
+              time -
+              mainTime
+            ) <=
+            45 * 60000
+          );
+        }
+      )
+      .sort(compareImportantGames)[0] ||
+    null
+  );
+}
+
+function pregamePhase(game) {
+  if (isLive(game)) {
+    return {
+      tag: "🔴 AO VIVO",
+      title: "A BOLA ESTÁ ROLANDO",
+      text:
+        "Acompanhe o placar e as atualizações."
+    };
+  }
+
+  if (game.status === "HT") {
+    return {
+      tag: "⏸ INTERVALO",
+      title: "INTERVALO",
+      text:
+        "Confira o placar da partida."
+    };
+  }
+
+  if (game.status === "FT") {
+    return {
+      tag: "🏁 ENCERRADO",
+      title: "FIM DE JOGO",
+      text:
+        "Partida encerrada."
+    };
+  }
+
+  const minutes =
+    minutesToKickoff(game);
+
+  if (
+    minutes === null ||
+    minutes > 30
+  ) {
+    return {
+      tag: "📺 PRÓXIMO PRÉ-JOGO",
+      title: "M ESPORTES T-30",
+      text:
+        "O programa começa 30 minutos antes."
+    };
+  }
+
+  if (minutes >= 21) {
+    return {
+      tag: `🔴 T-${minutes}`,
+      title: "ABERTURA DO PRÉ-JOGO",
+      text:
+        "Confronto, campeonato e primeiras informações."
+    };
+  }
+
+  if (minutes >= 11) {
+    return {
+      tag: `🔴 T-${minutes}`,
+      title: "RAIO-X DO CONFRONTO",
+      text:
+        "Informações dos dois times antes da bola rolar."
+    };
+  }
+
+  if (minutes >= 6) {
+    return {
+      tag: `🔴 T-${minutes}`,
+      title: "INFORMAÇÕES FINAIS",
+      text:
+        "Últimos boletins antes do jogo."
+    };
+  }
+
+  return {
+    tag:
+      minutes > 0
+        ? `🔴 T-${minutes}`
+        : "🔴 VAI COMEÇAR",
+
+    title:
+      "CONTAGEM REGRESSIVA",
+
+    text:
+      "Tudo pronto para a partida."
+  };
+}
+
+function pregameLogo(url, team) {
   if (url) {
     return `
       <img
@@ -1465,9 +1920,7 @@ function pregameLogo(
 }
 
 function renderPregame() {
-  if (
-    !els.pregameCard
-  ) {
+  if (!els.pregameCard) {
     return;
   }
 
@@ -1484,13 +1937,14 @@ function renderPregame() {
     return;
   }
 
+  const phase =
+    pregamePhase(game);
+
+  const roundup =
+    chooseRoundupGame(game);
+
   const live =
-    [
-      "1H",
-      "2H"
-    ].includes(
-      game.status
-    );
+    isLive(game);
 
   let center = "";
 
@@ -1549,7 +2003,7 @@ function renderPregame() {
   } else {
     center = `
       <div class="label">
-        HORÁRIO
+        ${escapeHtml(phase.tag)}
       </div>
 
       <div class="time">
@@ -1578,21 +2032,13 @@ function renderPregame() {
       </div>
 
       <div class="pregame-status">
-        ${
-          live
-            ? "AO VIVO"
-            : game.status === "HT"
-              ? "INTERVALO"
-              : game.status === "FT"
-                ? "ENCERRADO"
-                : "PRÉ-JOGO"
-        }
+        ${escapeHtml(phase.tag)}
       </div>
 
     </div>
 
     <div class="pregame-banner">
-      M ESPORTES 3 MINUTOS • ESQUENTANDO O JOGO
+      M ESPORTES • PRÉ-JOGO AUTOMÁTICO T-30
     </div>
 
     <div class="pregame-match">
@@ -1628,9 +2074,30 @@ function renderPregame() {
       </div>
 
     </div>
+
+    <div class="pregame-banner">
+      ${escapeHtml(phase.title)}
+      •
+      ${escapeHtml(phase.text)}
+    </div>
+
+    ${
+      roundup
+        ? `
+          <div class="pregame-banner">
+            GIRO DA RODADA •
+            ${escapeHtml(roundup.home)}
+            x
+            ${escapeHtml(roundup.away)}
+            •
+            ${escapeHtml(roundup.start)}
+          </div>
+        `
+        : ""
+    }
   `;
 }
-
+    
 /* =========================================================
    M ESPORTES AGORA
 ========================================================= */
