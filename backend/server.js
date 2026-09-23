@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import Parser from 'rss-parser';
 import webpush from 'web-push';
-
+import { EdgeTTS } from "node-edge-tts";
+import fs from "fs";
+import path from "path";
+import os from "os";
 const app = express();
 const parser = new Parser();
 
@@ -2399,14 +2402,119 @@ app.get(
 );
 
 /* =========================================================
-   RAIZ
+   LOCUTOR AUTOMÁTICO
 ========================================================= */
+
+app.get(
+  "/api/locutor",
+  async (req, res) => {
+    const texto =
+      String(
+        req.query.texto || ""
+      )
+        .trim()
+        .slice(0, 700);
+
+    if (!texto) {
+      return res
+        .status(400)
+        .json({
+          ok: false,
+          error:
+            "Informe ?texto="
+        });
+    }
+
+    const arquivo =
+      path.join(
+        os.tmpdir(),
+        `m-esportes-${Date.now()}.mp3`
+      );
+
+    try {
+      const tts =
+        new EdgeTTS({
+          voice:
+            "pt-BR-AntonioNeural",
+
+          lang:
+            "pt-BR",
+
+          outputFormat:
+            "audio-24khz-48kbitrate-mono-mp3",
+
+          rate:
+            "-5%",
+
+          pitch:
+            "-3%",
+
+          volume:
+            "+0%"
+        });
+
+      await tts.ttsPromise(
+        texto,
+        arquivo
+      );
+
+      res.setHeader(
+        "Content-Type",
+        "audio/mpeg"
+      );
+
+      res.setHeader(
+        "Cache-Control",
+        "no-store"
+      );
+
+      res.sendFile(
+        arquivo,
+        error => {
+          fs.unlink(
+            arquivo,
+            () => {}
+          );
+
+          if (error) {
+            console.error(
+              "Erro enviando locução:",
+              error.message
+            );
+          }
+        }
+      );
+
+    } catch (error) {
+      fs.unlink(
+        arquivo,
+        () => {}
+      );
+
+      console.error(
+        "Locutor:",
+        error
+      );
+
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error:
+            "Erro ao gerar locução",
+          details:
+            error.message
+        });
+    }
+  }
+);
+
 /* =========================================================
    RAIZ
 ========================================================= */
 
 app.get(
-  '/',
+  "/",
   (
     req,
     res
@@ -2415,28 +2523,29 @@ app.get(
       ok: true,
 
       service:
-        'M Esportes',
+        "M Esportes",
 
       providers: [
-        'RPF PLACAR',
-        'FGF'
+        "RPF PLACAR",
+        "FGF"
       ],
 
       endpoints: [
-        '/api/health',
-        '/api/games/today',
-        '/api/live',
-        '/api/leagues',
-        '/api/fgf/jogos',
-        '/api/fgf/gauchao',
-        '/api/fgf/a2',
-        '/api/fgf/serie-b',
-        '/api/fgf/copa-fgf',
-        '/api/news',
-        '/api/push/public-key',
-        '/api/push/subscribe',
-        '/api/push/unsubscribe',
-        '/api/push/test'
+        "/api/health",
+        "/api/games/today",
+        "/api/live",
+        "/api/leagues",
+        "/api/fgf/jogos",
+        "/api/fgf/gauchao",
+        "/api/fgf/a2",
+        "/api/fgf/serie-b",
+        "/api/fgf/copa-fgf",
+        "/api/news",
+        "/api/push/public-key",
+        "/api/push/subscribe",
+        "/api/push/unsubscribe",
+        "/api/push/test",
+        "/api/locutor"
       ]
     });
   }
