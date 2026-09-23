@@ -145,11 +145,21 @@ function criarBoletimPregame(
   */
 
   if (
-    minutos === null ||
-    minutos > 30
-  ) {
-    return null;
-  }
+  minutos === null ||
+  minutos > 30
+) {
+  return {
+    id:
+      `${game.id}-teste`,
+
+    texto:
+      `Teste do M Esportes Pré-Jogo.
+      O destaque selecionado é
+      ${casa} contra ${fora},
+      por ${campeonato}.
+      A partida está marcada para ${horario}.`
+  };
+}
 
   /*
     T-30
