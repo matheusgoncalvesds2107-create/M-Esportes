@@ -2434,8 +2434,7 @@ app.get(
     try {
       const tts =
         new EdgeTTS({
-          voice:
-            "pt-BR-AntonioNeural",
+          voice: "pt-BR-FranciscaNeural",
 
           lang:
             "pt-BR",
@@ -2443,11 +2442,8 @@ app.get(
           outputFormat:
             "audio-24khz-48kbitrate-mono-mp3",
 
-          rate:
-            "-5%",
-
-          pitch:
-            "-3%",
+          rate: "+5%",
+pitch: "+0Hz",
 
           volume:
             "+0%"
