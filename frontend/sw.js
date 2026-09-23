@@ -1,4 +1,4 @@
-const CACHE_NAME = "m-esportes-v5";
+const CACHE_NAME = "m-esportes-v6";
 
 const APP_SHELL = [
   "./",
@@ -6,10 +6,10 @@ const APP_SHELL = [
   "./src.css",
   "./src.js",
   "./push.js",
+  "./locutor.js",
   "./manifest.json",
   "./audio/gol-rpf.mp3"
 ];
-
 
 /* =========================================================
    INSTALAÇÃO
