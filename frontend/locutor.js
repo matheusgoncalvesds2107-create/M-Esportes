@@ -1,46 +1,39 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const botao = document.getElementById("locutorBtn");
+  const botao =
+    document.getElementById("locutorBtn");
 
   if (!botao) {
     return;
   }
 
-  botao.addEventListener("click", () => {
+  const audio =
+    new Audio("./audio/locutor-teste.mp3");
 
-    if (!("speechSynthesis" in window)) {
-      alert("Este navegador não suporta voz automática.");
-      return;
+  audio.preload = "auto";
+
+  botao.addEventListener(
+    "click",
+    async () => {
+      try {
+        audio.currentTime = 0;
+
+        await audio.play();
+
+        botao.textContent =
+          "🔊 LOCUTOR NO AR";
+      } catch (error) {
+        alert(
+          "Não consegui tocar o áudio."
+        );
+      }
     }
+  );
 
-    window.speechSynthesis.cancel();
-
-    const fala = new SpeechSynthesisUtterance(
-      "Teste de áudio. Você está ouvindo o M Esportes."
-    );
-
-    fala.lang = "pt-BR";
-    fala.volume = 1;
-    fala.rate = 0.9;
-    fala.pitch = 1;
-
-    fala.onstart = () => {
-      botao.textContent = "🔊 FALANDO";
-    };
-
-    fala.onend = () => {
-      botao.textContent = "🎙️ OUVIR PRÉ-JOGO";
-    };
-
-    fala.onerror = event => {
-      alert(
-        "Erro na voz: " +
-        (event.error || "desconhecido")
-      );
-
+  audio.addEventListener(
+    "ended",
+    () => {
       botao.textContent =
         "🎙️ OUVIR PRÉ-JOGO";
-    };
-
-    window.speechSynthesis.speak(fala);
-  });
+    }
+  );
 });
