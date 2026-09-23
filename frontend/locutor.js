@@ -1,46 +1,44 @@
 /* =========================================================
    M ESPORTES - LOCUTOR AUTOMÁTICO
-   Pré-jogo T-30
+   Pré-jogo T-30 + botão de teste
 ========================================================= */
 
 const LOCUTOR = {
   enabled: true,
-  lastMessageId: null,
-  lastGameId: null
+  lastMessageId: null
 };
 
 /* =========================================================
-   ESCOLHER MELHOR VOZ PT-BR
+   ESCOLHER VOZ
 ========================================================= */
 
 function getLocutorVoice() {
+  if (!("speechSynthesis" in window)) {
+    return null;
+  }
+
   const voices =
-    speechSynthesis.getVoices();
+    window.speechSynthesis.getVoices();
 
   const ptBR =
     voices.filter(
       voice =>
-        String(voice.lang)
+        String(voice.lang || "")
           .toLowerCase()
           .startsWith("pt-br")
     );
 
-  if (ptBR.length) {
-    return (
-      ptBR.find(
-        voice =>
-          /natural|premium|neural/i.test(
-            voice.name
-          )
-      ) ||
-      ptBR[0]
-    );
-  }
-
   return (
+    ptBR.find(
+      voice =>
+        /natural|premium|neural/i.test(
+          voice.name || ""
+        )
+    ) ||
+    ptBR[0] ||
     voices.find(
       voice =>
-        String(voice.lang)
+        String(voice.lang || "")
           .toLowerCase()
           .startsWith("pt")
     ) ||
@@ -53,14 +51,14 @@ function getLocutorVoice() {
 ========================================================= */
 
 function falar(texto) {
-  if (
-    !LOCUTOR.enabled ||
-    !("speechSynthesis" in window)
-  ) {
+  if (!("speechSynthesis" in window)) {
+    alert(
+      "Este navegador não liberou o locutor."
+    );
     return;
   }
 
-  speechSynthesis.cancel();
+  window.speechSynthesis.cancel();
 
   const fala =
     new SpeechSynthesisUtterance(
@@ -75,280 +73,285 @@ function falar(texto) {
   }
 
   fala.lang = "pt-BR";
-
   fala.rate = 0.92;
   fala.pitch = 0.95;
   fala.volume = 1;
 
-  speechSynthesis.speak(
-    fala
-  );
+  window.speechSynthesis.resume();
+  window.speechSynthesis.speak(fala);
 }
 
 /* =========================================================
-   TEXTO DO CAMPEONATO
+   PEGAR JOGO DE DESTAQUE
 ========================================================= */
 
-function nomeCampeonato(game) {
-  return (
-    game?.league ||
-    "campeonato"
-  );
-}
-
-/* =========================================================
-   MONTAR BOLETIM
-========================================================= */
-
-function criarBoletimPregame(
-  game
-) {
-  if (!game) {
-    return null;
-  }
-
-  const minutos =
-    minutesToKickoff(game);
-
-  const casa =
-    game.home;
-
-  const fora =
-    game.away;
-
-  const campeonato =
-    nomeCampeonato(game);
-
-  const horario =
-    game.start;
-
-  /*
-    JOGO JÁ COMEÇOU
-  */
-
-  if (
-    isLive(game)
-  ) {
-    return {
-      id:
-        `${game.id}-live`,
-
-      texto:
-        `A bola está rolando. 
-        ${casa} e ${fora} estão em campo por ${campeonato}.`
-    };
-  }
-
-  /*
-    MAIS DE 30 MINUTOS
-    Não fala ainda.
-  */
-
-  if (
-  minutos === null ||
-  minutos > 30
-) {
-  return {
-    id:
-      `${game.id}-teste`,
-
-    texto:
-      `Teste do M Esportes Pré-Jogo.
-      O destaque selecionado é
-      ${casa} contra ${fora},
-      por ${campeonato}.
-      A partida está marcada para ${horario}.`
-  };
-}
-
-  /*
-    T-30
-  */
-
-  if (
-    minutos <= 30 &&
-    minutos >= 26
-  ) {
-    return {
-      id:
-        `${game.id}-t30`,
-
-      texto:
-        `Boa noite. Está começando o M Esportes Pré-Jogo. 
-        Daqui a cerca de trinta minutos, 
-        ${casa} e ${fora} entram em campo por ${campeonato}. 
-        A partida está marcada para ${horario}. 
-        A partir de agora, acompanhe as principais informações antes da bola rolar.`
-    };
-  }
-
-  /*
-    T-20
-  */
-
-  if (
-    minutos <= 20 &&
-    minutos >= 16
-  ) {
-    return {
-      id:
-        `${game.id}-t20`,
-
-      texto:
-        `Faltam aproximadamente vinte minutos para ${casa} e ${fora}. 
-        O M Esportes segue no aquecimento para esta partida de ${campeonato}. 
-        Em instantes, novas informações do confronto.`
-    };
-  }
-
-  /*
-    T-10
-  */
-
-  if (
-    minutos <= 10 &&
-    minutos >= 7
-  ) {
-    return {
-      id:
-        `${game.id}-t10`,
-
-      texto:
-        `Entramos nos dez minutos finais antes da partida. 
-        ${casa} contra ${fora}. 
-        Assim que houver escalações confirmadas, 
-        o M Esportes atualiza automaticamente o pré-jogo.`
-    };
-  }
-
-  /*
-    T-5
-  */
-
-  if (
-    minutos <= 5 &&
-    minutos >= 3
-  ) {
-    return {
-      id:
-        `${game.id}-t5`,
-
-      texto:
-        `Falta muito pouco. 
-        ${casa} e ${fora} já estão perto da hora do jogo. 
-        O placar começa em zero a zero.`
-    };
-  }
-
-  /*
-    T-1
-  */
-
-  if (
-    minutos <= 1 &&
-    minutos >= 0
-  ) {
-    return {
-      id:
-        `${game.id}-t1`,
-
-      texto:
-        `Tudo pronto. 
-        ${casa} contra ${fora}. 
-        Vai começar.`
-    };
+function pegarJogoDoLocutor() {
+  try {
+    if (
+      typeof choosePregameGame ===
+      "function"
+    ) {
+      return choosePregameGame();
+    }
+  } catch (error) {
+    console.warn(
+      "Erro escolhendo jogo:",
+      error
+    );
   }
 
   return null;
 }
 
 /* =========================================================
-   EXECUTAR LOCUTOR
+   TEXTO DE TESTE
 ========================================================= */
 
-function atualizarLocutor() {
+function criarTextoAgora(game) {
+  if (!game) {
+    return (
+      "Teste do locutor do M Esportes. " +
+      "O sistema de voz está funcionando. " +
+      "Quando houver um jogo selecionado para o pré-jogo, " +
+      "eu apresentarei automaticamente as informações da partida."
+    );
+  }
+
+  const casa =
+    game.home ||
+    game.home_team ||
+    game.homeTeam ||
+    "time da casa";
+
+  const fora =
+    game.away ||
+    game.away_team ||
+    game.awayTeam ||
+    "time visitante";
+
+  const campeonato =
+    game.league ||
+    game.competition ||
+    game.championship ||
+    "campeonato";
+
+  const horario =
+    game.start ||
+    game.time ||
+    game.hour ||
+    "";
+
+  let texto =
+    `Você está ouvindo o M Esportes Pré-Jogo. ` +
+    `O destaque é ${casa} contra ${fora}, ` +
+    `por ${campeonato}. `;
+
+  if (horario) {
+    texto +=
+      `A partida está marcada para ${horario}. `;
+  }
+
+  texto +=
+    `Acompanhe o aquecimento, as informações e a contagem regressiva para a bola rolar.`;
+
+  return texto;
+}
+
+/* =========================================================
+   BOTÃO OUVIR PRÉ-JOGO
+========================================================= */
+
+function ativarBotaoLocutor() {
+  const botao =
+    document.getElementById(
+      "locutorBtn"
+    );
+
+  if (!botao) {
+    console.warn(
+      "Botão locutorBtn não encontrado."
+    );
+    return;
+  }
+
+  botao.addEventListener(
+    "click",
+    () => {
+      const game =
+        pegarJogoDoLocutor();
+
+      const texto =
+        criarTextoAgora(game);
+
+      falar(texto);
+
+      botao.textContent =
+        "🔊 LOCUTOR NO AR";
+
+      setTimeout(
+        () => {
+          botao.textContent =
+            "🎙️ OUVIR PRÉ-JOGO";
+        },
+        4000
+      );
+    }
+  );
+}
+
+/* =========================================================
+   BOLETIM AUTOMÁTICO T-30
+========================================================= */
+
+function atualizarLocutorAutomatico() {
   try {
     const game =
-      choosePregameGame();
+      pegarJogoDoLocutor();
 
     if (!game) {
       return;
     }
 
-    const boletim =
-      criarBoletimPregame(
-        game
-      );
-
-    if (!boletim) {
-      return;
-    }
-
-    /*
-      Evita repetir o mesmo
-      boletim várias vezes.
-    */
-
     if (
-      LOCUTOR.lastMessageId ===
-      boletim.id
+      typeof minutesToKickoff !==
+      "function"
     ) {
       return;
     }
 
-    LOCUTOR.lastMessageId =
-      boletim.id;
+    const minutos =
+      minutesToKickoff(game);
 
-    LOCUTOR.lastGameId =
-      String(game.id);
+    if (
+      minutos === null ||
+      minutos < 0 ||
+      minutos > 30
+    ) {
+      return;
+    }
 
-    falar(
-      boletim.texto
-    );
+    const casa =
+      game.home ||
+      game.home_team ||
+      game.homeTeam ||
+      "time da casa";
+
+    const fora =
+      game.away ||
+      game.away_team ||
+      game.awayTeam ||
+      "time visitante";
+
+    let faixa = null;
+    let texto = null;
+
+    if (
+      minutos <= 30 &&
+      minutos >= 26
+    ) {
+      faixa = "t30";
+
+      texto =
+        `Está começando o M Esportes Pré-Jogo. ` +
+        `Daqui a cerca de trinta minutos, ` +
+        `${casa} e ${fora} entram em campo.`;
+    }
+
+    if (
+      minutos <= 20 &&
+      minutos >= 16
+    ) {
+      faixa = "t20";
+
+      texto =
+        `Faltam aproximadamente vinte minutos. ` +
+        `${casa} contra ${fora}. ` +
+        `Seguimos no aquecimento do M Esportes.`;
+    }
+
+    if (
+      minutos <= 10 &&
+      minutos >= 7
+    ) {
+      faixa = "t10";
+
+      texto =
+        `Entramos nos dez minutos finais antes da partida. ` +
+        `${casa} contra ${fora}.`;
+    }
+
+    if (
+      minutos <= 5 &&
+      minutos >= 3
+    ) {
+      faixa = "t5";
+
+      texto =
+        `Falta muito pouco para a bola rolar. ` +
+        `${casa} e ${fora}.`;
+    }
+
+    if (
+      minutos <= 1 &&
+      minutos >= 0
+    ) {
+      faixa = "t1";
+
+      texto =
+        `Tudo pronto. ` +
+        `${casa} contra ${fora}. ` +
+        `Vai começar.`;
+    }
+
+    if (
+      !faixa ||
+      !texto
+    ) {
+      return;
+    }
+
+    const id =
+      `${game.id || casa + fora}-${faixa}`;
+
+    if (
+      LOCUTOR.lastMessageId === id
+    ) {
+      return;
+    }
+
+    LOCUTOR.lastMessageId = id;
+
+    falar(texto);
 
   } catch (error) {
     console.warn(
-      "Locutor M Esportes:",
+      "Locutor automático:",
       error
     );
   }
 }
 
 /* =========================================================
-   ATIVAR ÁUDIO NO PRIMEIRO TOQUE
-========================================================= */
-
-document.addEventListener(
-  "click",
-  () => {
-    if (
-      "speechSynthesis"
-      in window
-    ) {
-      speechSynthesis.resume();
-    }
-  },
-  {
-    once: true
-  }
-);
-
-/* =========================================================
    INICIAR
 ========================================================= */
 
-setTimeout(
-  atualizarLocutor,
-  4000
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    ativarBotaoLocutor();
+
+    /*
+      Carrega as vozes do aparelho.
+    */
+    if (
+      "speechSynthesis" in window
+    ) {
+      window.speechSynthesis.getVoices();
+    }
+  }
 );
 
-/*
-  Confere o T-30,
-  T-20, T-10 e T-5
-  automaticamente.
-*/
-
 setInterval(
-  atualizarLocutor,
+  atualizarLocutorAutomatico,
   30000
 );
