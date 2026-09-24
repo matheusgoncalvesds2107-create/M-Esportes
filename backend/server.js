@@ -2515,7 +2515,7 @@ app.get(
     try {
       const seasonsResponse =
         await fetch(
-          "https://www.sofascore.com/api/v1/unique-tournament/325/seasons"
+          "https://api.sofascore.com/api/v1/unique-tournament/325/seasons"
         );
 
       if (!seasonsResponse.ok) {
@@ -2543,8 +2543,7 @@ app.get(
 
       const standingsResponse =
         await fetch(
-          `https://www.sofascore.com/api/v1/unique-tournament/325/season/${season.id}/standings/total`
-        );
+          `https://api.sofascore.com/api/v1/unique-tournament/325/season/${season.id}/standings/total`
 
       if (!standingsResponse.ok) {
         throw new Error(
