@@ -14,7 +14,7 @@
   "web-push": "^3.6.7",
   "node-edge-tts": "^1.2.10",
   "campeonato-brasileiro-api": "^2.1.0"
-  }
+  },
   "engines": {
     "node": ">=20"
   }
