@@ -6,7 +6,10 @@ import { EdgeTTS } from "node-edge-tts";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { getStandings } from "campeonato-brasileiro-api";
+import {
+  getStandings,
+  getRounds
+} from "campeonato-brasileiro-api";
 const app = express();
 const parser = new Parser();
 
