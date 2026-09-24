@@ -4046,6 +4046,7 @@ function renderSerieA() {
           </div>
         `;
   }
+}
 
 /* =========================================================
    BRASILEIRÃO SÉRIE A - CLASSIFICAÇÃO REAL
