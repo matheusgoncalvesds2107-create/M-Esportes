@@ -4067,49 +4067,54 @@ async function loadSerieAStandings() {
   tabela.innerHTML =
     "Carregando classificação...";
 
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () => controller.abort(),
+      8000
+    );
+
   try {
     const response =
       await fetch(
-        "https://m-esportes-api.onrender.com/api/serie-a/classificacao"
+        "https://m-esportes-api.onrender.com/api/serie-a/classificacao",
+        {
+          cache: "no-store",
+          signal:
+            controller.signal
+        }
       );
+
+    clearTimeout(timeout);
 
     const data =
       await response.json();
-
-    console.log(
-      "Série A:",
-      data
-    );
 
     if (
       !response.ok ||
       data.ok === false
     ) {
       throw new Error(
+        data.details ||
         data.error ||
         `Erro ${response.status}`
       );
     }
 
     const rows =
-      data.table ||
-      data.tabela ||
-      data.response ||
-      [];
+      data.table || [];
 
-    if (
-      !Array.isArray(rows) ||
-      !rows.length
-    ) {
+    if (!rows.length) {
       tabela.innerHTML = `
         <div class="empty-state">
           <strong>
-            Classificação ainda vazia
+            Classificação indisponível
           </strong>
 
           <span>
-            O backend respondeu,
-            mas não retornou clubes.
+            Nenhum clube retornado.
           </span>
         </div>
       `;
@@ -4135,7 +4140,7 @@ async function loadSerieAStandings() {
           row => `
             <div class="standings-row">
 
-              <span>
+              <span class="standings-position">
                 ${row.position ?? "-"}
               </span>
 
@@ -4143,7 +4148,6 @@ async function loadSerieAStandings() {
                 ${escapeHtml(
                   row.shortName ||
                   row.team ||
-                  row.name ||
                   "Time"
                 )}
               </span>
@@ -4180,10 +4184,7 @@ async function loadSerieAStandings() {
     `;
 
   } catch (error) {
-    console.error(
-      "Classificação Série A:",
-      error
-    );
+    clearTimeout(timeout);
 
     tabela.innerHTML = `
       <div class="empty-state">
@@ -4192,18 +4193,17 @@ async function loadSerieAStandings() {
         </strong>
 
         <span>
-          ${escapeHtml(
-            error.message ||
-            "Erro desconhecido"
-          )}
+          ${
+            error.name ===
+            "AbortError"
+              ? "A classificação demorou demais para responder."
+              : escapeHtml(
+                  error.message ||
+                  "Erro desconhecido"
+                )
+          }
         </span>
       </div>
     `;
   }
-                  }
-setTimeout(
-  () => {
-    loadSerieAStandings();
-  },
-  3000
-);
+}
