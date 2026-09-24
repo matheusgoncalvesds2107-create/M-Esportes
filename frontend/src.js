@@ -3702,3 +3702,106 @@ setInterval(
     refreshAll(false),
   20000
 );
+/* =========================================================
+   BRASILEIRÃO SÉRIE A - ABAS
+========================================================= */
+
+function setupSerieATabs() {
+  const buttons =
+    document.querySelectorAll(
+      "[data-seriea-tab]"
+    );
+
+  if (!buttons.length) {
+    return;
+  }
+
+  const panels = {
+    classificacao:
+      document.getElementById(
+        "serieAClassificacao"
+      ),
+
+    rodada:
+      document.getElementById(
+        "serieARodada"
+      ),
+
+    proximos:
+      document.getElementById(
+        "serieAProximos"
+      ),
+
+    resultados:
+      document.getElementById(
+        "serieAResultados"
+      )
+  };
+
+  buttons.forEach(
+    button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const tab =
+            button.dataset
+              .serieaTab;
+
+          /*
+            Tirar ativo de todos
+          */
+
+          buttons.forEach(
+            item =>
+              item.classList.remove(
+                "active"
+              )
+          );
+
+          /*
+            Esconder todos os painéis
+          */
+
+          Object
+            .values(panels)
+            .forEach(
+              panel => {
+                if (panel) {
+                  panel.classList.add(
+                    "hidden"
+                  );
+                }
+              }
+            );
+
+          /*
+            Ativar botão clicado
+          */
+
+          button.classList.add(
+            "active"
+          );
+
+          /*
+            Mostrar painel escolhido
+          */
+
+          if (panels[tab]) {
+            panels[tab]
+              .classList
+              .remove(
+                "hidden"
+              );
+          }
+        }
+      );
+    }
+  );
+}
+
+
+/* =========================================================
+   INICIAR ABAS DA SÉRIE A
+========================================================= */
+
+setupSerieATabs();
