@@ -4047,29 +4047,6 @@ function renderSerieA() {
         `;
   }
 
-
-  /* CLASSIFICAÇÃO */
-
-  if (tabela) {
-    tabela.innerHTML = `
-      <strong>
-        Classificação da Série A
-      </strong>
-
-      <div
-        style="
-          margin-top:8px;
-          color:#8e9b92;
-        "
-      >
-        Próxima etapa:
-        carregar a tabela completa
-        e atualizada do Brasileirão.
-      </div>
-    `;
-  }
-     }
-
 /* =========================================================
    BRASILEIRÃO SÉRIE A - CLASSIFICAÇÃO REAL
 ========================================================= */
