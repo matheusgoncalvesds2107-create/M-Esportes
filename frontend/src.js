@@ -4208,3 +4208,9 @@ async function loadSerieAStandings() {
     `;
   }
 }
+setTimeout(
+  () => {
+    loadSerieAStandings();
+  },
+  1500
+);
