@@ -118,19 +118,19 @@
           </div>
 
           <div
-  id="pregameCard"
-  class="pregame-card"
->
-  Carregando destaque...
-</div>
+            id="pregameCard"
+            class="pregame-card"
+          >
+            Carregando destaque...
+          </div>
 
-<button
-  id="locutorBtn"
-  class="primary-button"
-  type="button"
->
-  🎙️ OUVIR PRÉ-JOGO
-</button>
+          <button
+            id="locutorBtn"
+            class="primary-button"
+            type="button"
+          >
+            🎙️ OUVIR PRÉ-JOGO
+          </button>
 
         </section>
 
@@ -339,10 +339,208 @@
 
         </div>
 
+
         <div
           id="leaguesList"
           class="leagues-list"
         ></div>
+
+
+        <!-- =========================
+             BRASILEIRÃO SÉRIE A
+        ========================== -->
+        <section
+          id="serieAView"
+          class="section-block serie-a-view"
+        >
+
+          <div class="league-header">
+
+            <div>
+
+              <span class="section-label">
+                🇧🇷 CAMPEONATO BRASILEIRO
+              </span>
+
+              <h2>
+                Brasileirão Série A
+              </h2>
+
+              <p>
+                Classificação, rodada,
+                próximos jogos e resultados.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div class="league-tabs">
+
+            <button
+              class="league-tab active"
+              data-seriea-tab="classificacao"
+              type="button"
+            >
+              Classificação
+            </button>
+
+            <button
+              class="league-tab"
+              data-seriea-tab="rodada"
+              type="button"
+            >
+              Rodada
+            </button>
+
+            <button
+              class="league-tab"
+              data-seriea-tab="proximos"
+              type="button"
+            >
+              Próximos
+            </button>
+
+            <button
+              class="league-tab"
+              data-seriea-tab="resultados"
+              type="button"
+            >
+              Resultados
+            </button>
+
+          </div>
+
+
+          <!-- CLASSIFICAÇÃO -->
+          <div
+            id="serieAClassificacao"
+            class="seriea-panel"
+          >
+
+            <div class="section-title-row">
+
+              <div>
+
+                <span class="section-label">
+                  TABELA
+                </span>
+
+                <h3>
+                  Classificação
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div
+              id="serieATabela"
+              class="serie-a-table"
+            >
+              Carregando classificação...
+            </div>
+
+          </div>
+
+
+          <!-- RODADA -->
+          <div
+            id="serieARodada"
+            class="seriea-panel hidden"
+          >
+
+            <div class="section-title-row">
+
+              <div>
+
+                <span class="section-label">
+                  BRASILEIRÃO
+                </span>
+
+                <h3>
+                  Rodada atual
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div
+              id="serieAJogosRodada"
+              class="games-list"
+            >
+              Carregando rodada...
+            </div>
+
+          </div>
+
+
+          <!-- PRÓXIMOS JOGOS -->
+          <div
+            id="serieAProximos"
+            class="seriea-panel hidden"
+          >
+
+            <div class="section-title-row">
+
+              <div>
+
+                <span class="section-label">
+                  AGENDA
+                </span>
+
+                <h3>
+                  Próximos jogos
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div
+              id="serieAProximosJogos"
+              class="games-list"
+            >
+              Carregando próximos jogos...
+            </div>
+
+          </div>
+
+
+          <!-- RESULTADOS -->
+          <div
+            id="serieAResultados"
+            class="seriea-panel hidden"
+          >
+
+            <div class="section-title-row">
+
+              <div>
+
+                <span class="section-label">
+                  ENCERRADOS
+                </span>
+
+                <h3>
+                  Resultados
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div
+              id="serieAResultadosJogos"
+              class="games-list"
+            >
+              Carregando resultados...
+            </div>
+
+          </div>
+
+        </section>
 
       </section>
 
@@ -669,9 +867,10 @@
 
   </div>
 
-<script src="./src.js"></script>
-<script src="./push.js"></script>
-<script src="./locutor.js"></script>
-  
+
+  <script src="./src.js"></script>
+  <script src="./push.js"></script>
+  <script src="./locutor.js"></script>
+
 </body>
 </html>
