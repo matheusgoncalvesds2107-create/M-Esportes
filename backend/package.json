@@ -13,7 +13,7 @@
     "rss-parser": "^3.13.0",
     "web-push": "^3.6.7",
     "node-edge-tts": "^1.2.10",
-    "campeonato-brasileiro-api": "^2.1.0"
+    "campeonato-brasileiro-api": "^2.0.1"
   },
   "engines": {
     "node": ">=20"
