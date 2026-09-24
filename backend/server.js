@@ -6,6 +6,7 @@ import { EdgeTTS } from "node-edge-tts";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { getStandings } from "campeonato-brasileiro-api";
 const app = express();
 const parser = new Parser();
 
@@ -2513,96 +2514,60 @@ app.get(
   "/api/serie-a/classificacao",
   async (req, res) => {
     try {
-      const seasonsResponse =
-        await fetch(
-          "https://api.sofascore.com/api/v1/unique-tournament/325/seasons"
-        );
-
-      if (!seasonsResponse.ok) {
-        throw new Error(
-          `Temporadas respondeu ${seasonsResponse.status}`
-        );
-      }
-
-      const seasonsData =
-        await seasonsResponse.json();
-
-      const season =
-        seasonsData.seasons?.find(
-          item =>
-            String(item.year)
-              .includes("2026")
-        ) ||
-        seasonsData.seasons?.[0];
-
-      if (!season?.id) {
-        throw new Error(
-          "Temporada 2026 não encontrada"
-        );
-      }
-
-      const standingsResponse =
-        await fetch(
-          `https://api.sofascore.com/api/v1/unique-tournament/325/season/${season.id}/standings/total`
-      );
-      if (!standingsResponse.ok) {
-        throw new Error(
-          `Classificação respondeu ${standingsResponse.status}`
-        );
-      }
-
       const data =
-        await standingsResponse.json();
+        await getStandings("a");
 
-      const rows =
-        data.standings?.[0]?.rows || [];
+      const entries =
+        data?.tables?.[0]?.entries ||
+        [];
 
       const tabela =
-        rows.map(
-          row => ({
+        entries.map(
+          item => ({
             position:
-              row.position,
-
-            teamId:
-              row.team?.id,
+              item.position ?? 0,
 
             team:
-              row.team?.name,
+              item.team?.name ||
+              "Time",
 
             shortName:
-              row.team?.shortName ||
-              row.team?.name,
+              item.team?.shortName ||
+              item.team?.name ||
+              "Time",
 
             matches:
-              row.matches || 0,
+              item.played ??
+              item.matches ??
+              0,
 
             wins:
-              row.wins || 0,
+              item.wins ??
+              0,
 
             draws:
-              row.draws || 0,
+              item.draws ??
+              0,
 
             losses:
-              row.losses || 0,
+              item.losses ??
+              0,
 
             goalsFor:
-              row.scoresFor || 0,
+              item.goalsFor ??
+              0,
 
             goalsAgainst:
-              row.scoresAgainst || 0,
+              item.goalsAgainst ??
+              0,
 
             goalDifference:
-              (
-                Number(
-                  row.scoresFor || 0
-                ) -
-                Number(
-                  row.scoresAgainst || 0
-                )
-              ),
+              item.goalDifference ??
+              0,
 
             points:
-              row.points || 0
+              item.points ??
+              0
           })
         );
 
@@ -2610,20 +2575,15 @@ app.get(
         ok: true,
         competition:
           "Brasileirão Série A",
-
-        season:
-          season.year,
-
         count:
           tabela.length,
-
         table:
           tabela
       });
 
     } catch (error) {
       console.error(
-        "Série A classificação:",
+        "Classificação Série A:",
         error
       );
 
@@ -2633,13 +2593,13 @@ app.get(
           ok: false,
           error:
             "Erro ao carregar classificação da Série A",
-
           details:
             error.message
         });
     }
   }
 );
+      
 
 /* =========================================================
    RAIZ
