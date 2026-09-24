@@ -3805,3 +3805,266 @@ function setupSerieATabs() {
 ========================================================= */
 
 setupSerieATabs();
+/* =========================================================
+   BRASILEIRÃO SÉRIE A - JOGOS REAIS
+========================================================= */
+
+function isSerieAGame(game) {
+  const league =
+    normalizeText(
+      game?.league || ""
+    );
+
+  const country =
+    normalizeText(
+      game?.country || ""
+    );
+
+  return (
+    country.includes("brasil") &&
+    (
+      league.includes("serie a") ||
+      league.includes("brasileirao") ||
+      league.includes(
+        "campeonato brasileiro"
+      )
+    )
+  );
+}
+
+
+/* =========================================================
+   CARD SIMPLES DA SÉRIE A
+========================================================= */
+
+function serieAGameCard(game) {
+  const homeScore =
+    scoreValue(game.hs);
+
+  const awayScore =
+    scoreValue(game.as);
+
+  let status =
+    game.start;
+
+  if (isLive(game)) {
+    status =
+      getGameClock(game);
+  }
+
+  if (game.status === "FT") {
+    status =
+      "ENCERRADO";
+  }
+
+  return `
+    <div class="match-card">
+
+      <div class="match-time">
+        ${escapeHtml(status)}
+      </div>
+
+      <div class="teams">
+
+        <div class="team">
+
+          ${
+            game.homeLogo
+              ? `
+                <img
+                  class="team-logo"
+                  src="${escapeHtml(
+                    game.homeLogo
+                  )}"
+                  alt=""
+                />
+              `
+              : `
+                <div class="team-logo-fallback">
+                  ⚽
+                </div>
+              `
+          }
+
+          <span class="team-name">
+            ${escapeHtml(game.home)}
+          </span>
+
+        </div>
+
+
+        <div class="team">
+
+          ${
+            game.awayLogo
+              ? `
+                <img
+                  class="team-logo"
+                  src="${escapeHtml(
+                    game.awayLogo
+                  )}"
+                  alt=""
+                />
+              `
+              : `
+                <div class="team-logo-fallback">
+                  ⚽
+                </div>
+              `
+          }
+
+          <span class="team-name">
+            ${escapeHtml(game.away)}
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="score">
+
+        <span>
+          ${homeScore}
+        </span>
+
+        <span>
+          ${awayScore}
+        </span>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   RENDER SÉRIE A
+========================================================= */
+
+function renderSerieA() {
+  const rodada =
+    document.getElementById(
+      "serieAJogosRodada"
+    );
+
+  const proximos =
+    document.getElementById(
+      "serieAProximosJogos"
+    );
+
+  const resultados =
+    document.getElementById(
+      "serieAResultadosJogos"
+    );
+
+  const tabela =
+    document.getElementById(
+      "serieATabela"
+    );
+
+  const jogos =
+    state.games.filter(
+      isSerieAGame
+    );
+
+
+  /* RODADA */
+
+  if (rodada) {
+    rodada.innerHTML =
+      jogos.length
+        ? jogos
+            .map(
+              serieAGameCard
+            )
+            .join("")
+        : `
+          <div class="empty-state">
+            <strong>
+              Sem jogos da Série A hoje
+            </strong>
+
+            <span>
+              Nenhuma partida encontrada
+              para esta data.
+            </span>
+          </div>
+        `;
+  }
+
+
+  /* PRÓXIMOS */
+
+  const proximosJogos =
+    jogos.filter(
+      game =>
+        game.status === "NS"
+    );
+
+  if (proximos) {
+    proximos.innerHTML =
+      proximosJogos.length
+        ? proximosJogos
+            .map(
+              serieAGameCard
+            )
+            .join("")
+        : `
+          <div class="empty-state">
+            <strong>
+              Nenhum próximo jogo hoje
+            </strong>
+          </div>
+        `;
+  }
+
+
+  /* RESULTADOS */
+
+  const encerrados =
+    jogos.filter(
+      game =>
+        game.status === "FT"
+    );
+
+  if (resultados) {
+    resultados.innerHTML =
+      encerrados.length
+        ? encerrados
+            .map(
+              serieAGameCard
+            )
+            .join("")
+        : `
+          <div class="empty-state">
+            <strong>
+              Nenhum resultado hoje
+            </strong>
+          </div>
+        `;
+  }
+
+
+  /* CLASSIFICAÇÃO */
+
+  if (tabela) {
+    tabela.innerHTML = `
+      <strong>
+        Classificação da Série A
+      </strong>
+
+      <div
+        style="
+          margin-top:8px;
+          color:#8e9b92;
+        "
+      >
+        Próxima etapa:
+        carregar a tabela completa
+        e atualizada do Brasileirão.
+      </div>
+    `;
+  }
+     }
