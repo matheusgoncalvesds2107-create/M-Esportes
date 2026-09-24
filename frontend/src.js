@@ -3133,7 +3133,6 @@ function renderAll() {
   renderNews();
   renderTicker();
   renderRadios();
-  loadSerieAStandings();
        }
 
 /* =========================================================
@@ -4225,3 +4224,9 @@ async function loadSerieAStandings() {
     `;
   }
                   }
+setTimeout(
+  () => {
+    loadSerieAStandings();
+  },
+  3000
+);
