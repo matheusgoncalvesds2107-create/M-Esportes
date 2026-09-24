@@ -2544,7 +2544,7 @@ app.get(
       const standingsResponse =
         await fetch(
           `https://api.sofascore.com/api/v1/unique-tournament/325/season/${season.id}/standings/total`
-
+      );
       if (!standingsResponse.ok) {
         throw new Error(
           `Classificação respondeu ${standingsResponse.status}`
