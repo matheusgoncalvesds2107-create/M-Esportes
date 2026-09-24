@@ -4094,35 +4094,46 @@ async function loadSerieAStandings() {
   try {
     const response =
       await fetch(
-        `${M_ESPORTES_API}/api/serie-a/classificacao`,
-        {
-          cache: "no-store"
-        }
+        "https://m-esportes-api.onrender.com/api/serie-a/classificacao"
       );
-
-    if (!response.ok) {
-      throw new Error(
-        `Classificação respondeu ${response.status}`
-      );
-    }
 
     const data =
       await response.json();
 
-    const rows =
-      Array.isArray(data.table)
-        ? data.table
-        : [];
+    console.log(
+      "Série A:",
+      data
+    );
 
-    if (!rows.length) {
+    if (
+      !response.ok ||
+      data.ok === false
+    ) {
+      throw new Error(
+        data.error ||
+        `Erro ${response.status}`
+      );
+    }
+
+    const rows =
+      data.table ||
+      data.tabela ||
+      data.response ||
+      [];
+
+    if (
+      !Array.isArray(rows) ||
+      !rows.length
+    ) {
       tabela.innerHTML = `
         <div class="empty-state">
           <strong>
-            Classificação indisponível
+            Classificação ainda vazia
           </strong>
 
           <span>
-            A tabela da Série A não respondeu agora.
+            O backend respondeu,
+            mas não retornou clubes.
           </span>
         </div>
       `;
@@ -4144,58 +4155,57 @@ async function loadSerieAStandings() {
           <span>PTS</span>
         </div>
 
-        ${rows
-          .map(
-            row => `
-              <div class="standings-row">
+        ${rows.map(
+          row => `
+            <div class="standings-row">
 
-                <span class="standings-position">
-                  ${row.position}
-                </span>
+              <span>
+                ${row.position ?? "-"}
+              </span>
 
-                <span class="standings-team">
-                  ${escapeHtml(
-                    row.shortName ||
-                    row.team ||
-                    "Time"
-                  )}
-                </span>
+              <span class="standings-team">
+                ${escapeHtml(
+                  row.shortName ||
+                  row.team ||
+                  row.name ||
+                  "Time"
+                )}
+              </span>
 
-                <span>
-                  ${row.matches ?? 0}
-                </span>
+              <span>
+                ${row.matches ?? 0}
+              </span>
 
-                <span>
-                  ${row.wins ?? 0}
-                </span>
+              <span>
+                ${row.wins ?? 0}
+              </span>
 
-                <span>
-                  ${row.draws ?? 0}
-                </span>
+              <span>
+                ${row.draws ?? 0}
+              </span>
 
-                <span>
-                  ${row.losses ?? 0}
-                </span>
+              <span>
+                ${row.losses ?? 0}
+              </span>
 
-                <span>
-                  ${row.goalDifference ?? 0}
-                </span>
+              <span>
+                ${row.goalDifference ?? 0}
+              </span>
 
-                <strong>
-                  ${row.points ?? 0}
-                </strong>
+              <strong>
+                ${row.points ?? 0}
+              </strong>
 
-              </div>
-            `
-          )
-          .join("")}
+            </div>
+          `
+        ).join("")}
 
       </div>
     `;
 
   } catch (error) {
     console.error(
-      "Erro classificação Série A:",
+      "Classificação Série A:",
       error
     );
 
@@ -4206,9 +4216,12 @@ async function loadSerieAStandings() {
         </strong>
 
         <span>
-          Tente novamente mais tarde.
+          ${escapeHtml(
+            error.message ||
+            "Erro desconhecido"
+          )}
         </span>
       </div>
     `;
   }
-}
+                  }
