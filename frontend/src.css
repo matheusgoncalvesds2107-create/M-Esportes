@@ -1581,3 +1581,103 @@ img {
     font-size: 10px;
   }
 }
+/* =========================================================
+   CLASSIFICAÇÃO SÉRIE A - MOBILE LIMPO
+========================================================= */
+
+.standings-table {
+  width: 100%;
+  overflow: hidden;
+
+  border-radius: 14px;
+
+  background: #0d120f;
+
+  border: 1px solid var(--line);
+}
+
+.standings-head,
+.standings-row {
+  display: grid;
+
+  grid-template-columns:
+    34px
+    minmax(0, 1fr)
+    32px
+    38px
+    42px;
+
+  align-items: center;
+
+  gap: 6px;
+
+  min-height: 44px;
+
+  padding:
+    0
+    10px;
+}
+
+.standings-head {
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 900;
+
+  text-transform: uppercase;
+
+  border-bottom:
+    1px solid
+    var(--line);
+}
+
+.standings-row {
+  font-size: 12px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,0.04);
+}
+
+.standings-row:last-child {
+  border-bottom: 0;
+}
+
+.standings-row span,
+.standings-row strong {
+  text-align: center;
+}
+
+.standings-team {
+  min-width: 0;
+
+  text-align: left !important;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-weight: 800;
+}
+
+.standings-position {
+  color: var(--green);
+
+  font-weight: 900;
+}
+
+.standings-row strong {
+  color: var(--green);
+
+  font-size: 13px;
+}
+
+/* esconder V, E e D no celular */
+.standings-head span:nth-child(4),
+.standings-head span:nth-child(5),
+.standings-head span:nth-child(6),
+.standings-row span:nth-child(4),
+.standings-row span:nth-child(5),
+.standings-row span:nth-child(6) {
+  display: none;
+}
