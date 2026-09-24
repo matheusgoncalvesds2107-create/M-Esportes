@@ -2506,6 +2506,143 @@ pitch: "+0Hz",
 );
 
 /* =========================================================
+   BRASILEIRÃO SÉRIE A - CLASSIFICAÇÃO
+========================================================= */
+
+app.get(
+  "/api/serie-a/classificacao",
+  async (req, res) => {
+    try {
+      const seasonsResponse =
+        await fetch(
+          "https://www.sofascore.com/api/v1/unique-tournament/325/seasons"
+        );
+
+      if (!seasonsResponse.ok) {
+        throw new Error(
+          `Temporadas respondeu ${seasonsResponse.status}`
+        );
+      }
+
+      const seasonsData =
+        await seasonsResponse.json();
+
+      const season =
+        seasonsData.seasons?.find(
+          item =>
+            String(item.year)
+              .includes("2026")
+        ) ||
+        seasonsData.seasons?.[0];
+
+      if (!season?.id) {
+        throw new Error(
+          "Temporada 2026 não encontrada"
+        );
+      }
+
+      const standingsResponse =
+        await fetch(
+          `https://www.sofascore.com/api/v1/unique-tournament/325/season/${season.id}/standings/total`
+        );
+
+      if (!standingsResponse.ok) {
+        throw new Error(
+          `Classificação respondeu ${standingsResponse.status}`
+        );
+      }
+
+      const data =
+        await standingsResponse.json();
+
+      const rows =
+        data.standings?.[0]?.rows || [];
+
+      const tabela =
+        rows.map(
+          row => ({
+            position:
+              row.position,
+
+            teamId:
+              row.team?.id,
+
+            team:
+              row.team?.name,
+
+            shortName:
+              row.team?.shortName ||
+              row.team?.name,
+
+            matches:
+              row.matches || 0,
+
+            wins:
+              row.wins || 0,
+
+            draws:
+              row.draws || 0,
+
+            losses:
+              row.losses || 0,
+
+            goalsFor:
+              row.scoresFor || 0,
+
+            goalsAgainst:
+              row.scoresAgainst || 0,
+
+            goalDifference:
+              (
+                Number(
+                  row.scoresFor || 0
+                ) -
+                Number(
+                  row.scoresAgainst || 0
+                )
+              ),
+
+            points:
+              row.points || 0
+          })
+        );
+
+      res.json({
+        ok: true,
+        competition:
+          "Brasileirão Série A",
+
+        season:
+          season.year,
+
+        count:
+          tabela.length,
+
+        table:
+          tabela
+      });
+
+    } catch (error) {
+      console.error(
+        "Série A classificação:",
+        error
+      );
+
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error:
+            "Erro ao carregar classificação da Série A",
+
+          details:
+            error.message
+        });
+    }
+  }
+);
+
+/* =========================================================
    RAIZ
 ========================================================= */
 
