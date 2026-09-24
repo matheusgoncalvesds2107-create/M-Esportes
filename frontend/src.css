@@ -1000,6 +1000,198 @@ img {
 }
 
 /* =========================================================
+   BRASILEIRÃO SÉRIE A
+========================================================= */
+
+.serie-a-view {
+  position: relative;
+  overflow: hidden;
+
+  margin-top: 26px;
+  padding: 16px;
+
+  border: 1px solid rgba(54, 255, 115, 0.18);
+  border-radius: 20px;
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(54, 255, 115, 0.10),
+      transparent 180px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.018),
+      rgba(255, 255, 255, 0)
+    ),
+    #0c100d;
+
+  box-shadow:
+    0 0 0 1px rgba(54, 255, 115, 0.03),
+    0 14px 34px rgba(0, 0, 0, 0.30);
+}
+
+.serie-a-view::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 3px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--green),
+      transparent
+    );
+}
+
+.serie-a-view .league-header {
+  padding: 0 0 14px;
+  margin-bottom: 14px;
+
+  border-bottom: 1px solid var(--line);
+
+  background: transparent;
+}
+
+.serie-a-view .league-header h2 {
+  margin: 4px 0 5px;
+
+  font-size: 24px;
+  line-height: 1.05;
+
+  color: var(--text);
+}
+
+.serie-a-view .league-header p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.league-tabs {
+  display: flex;
+  gap: 8px;
+
+  padding-bottom: 4px;
+  margin-bottom: 18px;
+
+  overflow-x: auto;
+
+  scrollbar-width: none;
+}
+
+.league-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.league-tab {
+  flex: 0 0 auto;
+
+  padding: 9px 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 999px;
+
+  background: #121713;
+  color: var(--muted);
+
+  font-size: 11px;
+  font-weight: 900;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.league-tab.active {
+  border-color: rgba(54, 255, 115, 0.45);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(54, 255, 115, 0.22),
+      rgba(54, 255, 115, 0.08)
+    );
+
+  color: var(--green);
+
+  box-shadow:
+    0 0 18px rgba(54, 255, 115, 0.08);
+}
+
+.seriea-panel {
+  padding: 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02),
+      rgba(255, 255, 255, 0)
+    ),
+    var(--card);
+}
+
+.seriea-panel .section-title-row {
+  margin-bottom: 12px;
+}
+
+.seriea-panel h3 {
+  margin: 0;
+
+  font-size: 18px;
+}
+
+.serie-a-table {
+  padding: 15px;
+
+  border: 1px dashed rgba(54, 255, 115, 0.18);
+  border-radius: 12px;
+
+  background: rgba(54, 255, 115, 0.025);
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.serie-a-table::before {
+  content: "🏆 ";
+
+  color: var(--green);
+}
+
+#serieAJogosRodada,
+#serieAProximosJogos,
+#serieAResultadosJogos {
+  min-height: 68px;
+
+  padding: 14px;
+
+  border: 1px dashed rgba(54, 255, 115, 0.14);
+  border-radius: 12px;
+
+  color: var(--muted);
+
+  background:
+    rgba(255, 255, 255, 0.012);
+
+  font-size: 12px;
+}
+
+/* =========================================================
    ALERTAS
 ========================================================= */
 
@@ -1374,5 +1566,18 @@ img {
 
   .score-big {
     font-size: 22px;
+  }
+
+  .serie-a-view {
+    padding: 13px;
+  }
+
+  .serie-a-view .league-header h2 {
+    font-size: 21px;
+  }
+
+  .league-tab {
+    padding: 8px 10px;
+    font-size: 10px;
   }
 }
