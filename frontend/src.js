@@ -3133,7 +3133,8 @@ function renderAll() {
   renderNews();
   renderTicker();
   renderRadios();
-}
+  loadSerieAStandings();
+       }
 
 /* =========================================================
    RELÓGIO VISUAL
@@ -4069,3 +4070,145 @@ function renderSerieA() {
     `;
   }
      }
+
+/* =========================================================
+   BRASILEIRÃO SÉRIE A - CLASSIFICAÇÃO REAL
+========================================================= */
+
+const M_ESPORTES_API =
+  "https://m-esportes-api.onrender.com";
+
+async function loadSerieAStandings() {
+  const tabela =
+    document.getElementById(
+      "serieATabela"
+    );
+
+  if (!tabela) {
+    return;
+  }
+
+  tabela.innerHTML =
+    "Carregando classificação...";
+
+  try {
+    const response =
+      await fetch(
+        `${M_ESPORTES_API}/api/serie-a/classificacao`,
+        {
+          cache: "no-store"
+        }
+      );
+
+    if (!response.ok) {
+      throw new Error(
+        `Classificação respondeu ${response.status}`
+      );
+    }
+
+    const data =
+      await response.json();
+
+    const rows =
+      Array.isArray(data.table)
+        ? data.table
+        : [];
+
+    if (!rows.length) {
+      tabela.innerHTML = `
+        <div class="empty-state">
+          <strong>
+            Classificação indisponível
+          </strong>
+
+          <span>
+            A tabela da Série A não respondeu agora.
+          </span>
+        </div>
+      `;
+
+      return;
+    }
+
+    tabela.innerHTML = `
+      <div class="standings-table">
+
+        <div class="standings-head">
+          <span>#</span>
+          <span>Time</span>
+          <span>J</span>
+          <span>V</span>
+          <span>E</span>
+          <span>D</span>
+          <span>SG</span>
+          <span>PTS</span>
+        </div>
+
+        ${rows
+          .map(
+            row => `
+              <div class="standings-row">
+
+                <span class="standings-position">
+                  ${row.position}
+                </span>
+
+                <span class="standings-team">
+                  ${escapeHtml(
+                    row.shortName ||
+                    row.team ||
+                    "Time"
+                  )}
+                </span>
+
+                <span>
+                  ${row.matches ?? 0}
+                </span>
+
+                <span>
+                  ${row.wins ?? 0}
+                </span>
+
+                <span>
+                  ${row.draws ?? 0}
+                </span>
+
+                <span>
+                  ${row.losses ?? 0}
+                </span>
+
+                <span>
+                  ${row.goalDifference ?? 0}
+                </span>
+
+                <strong>
+                  ${row.points ?? 0}
+                </strong>
+
+              </div>
+            `
+          )
+          .join("")}
+
+      </div>
+    `;
+
+  } catch (error) {
+    console.error(
+      "Erro classificação Série A:",
+      error
+    );
+
+    tabela.innerHTML = `
+      <div class="empty-state">
+        <strong>
+          Não foi possível carregar
+        </strong>
+
+        <span>
+          Tente novamente mais tarde.
+        </span>
+      </div>
+    `;
+  }
+}
