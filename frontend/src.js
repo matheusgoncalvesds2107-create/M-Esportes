@@ -3129,6 +3129,7 @@ function renderAll() {
   renderLive();
   renderFavorites();
   renderLeagues();
+  renderSerieA();
   renderNews();
   renderTicker();
   renderRadios();
