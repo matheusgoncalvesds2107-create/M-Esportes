@@ -3703,8 +3703,23 @@ setInterval(
     refreshAll(false),
   20000
 );
+
 /* =========================================================
-   BRASILEIRÃO SÉRIE A - ABAS
+   BRASILEIRÃO SÉRIE A
+========================================================= */
+
+const M_ESPORTES_API =
+  "https://m-esportes-api.onrender.com";
+
+const serieAState = {
+  matches: [],
+  round: null,
+  loaded: false
+};
+
+
+/* =========================================================
+   ABAS
 ========================================================= */
 
 function setupSerieATabs() {
@@ -3748,20 +3763,13 @@ function setupSerieATabs() {
             button.dataset
               .serieaTab;
 
-          /*
-            Tirar ativo de todos
-          */
-
           buttons.forEach(
-            item =>
+            item => {
               item.classList.remove(
                 "active"
-              )
+              );
+            }
           );
-
-          /*
-            Esconder todos os painéis
-          */
 
           Object
             .values(panels)
@@ -3775,17 +3783,9 @@ function setupSerieATabs() {
               }
             );
 
-          /*
-            Ativar botão clicado
-          */
-
           button.classList.add(
             "active"
           );
-
-          /*
-            Mostrar painel escolhido
-          */
 
           if (panels[tab]) {
             panels[tab]
@@ -3802,93 +3802,165 @@ function setupSerieATabs() {
 
 
 /* =========================================================
-   INICIAR ABAS DA SÉRIE A
+   DATA
 ========================================================= */
 
-setupSerieATabs();
-/* =========================================================
-   BRASILEIRÃO SÉRIE A - JOGOS REAIS
-========================================================= */
-
-function isSerieAGame(game) {
-  const league =
-    normalizeText(
-      game?.league || ""
+function formatSerieADate(
+  date,
+  time
+) {
+  if (!date) {
+    return (
+      time ||
+      "Data a definir"
     );
+  }
 
-  const country =
-    normalizeText(
-      game?.country || ""
+  try {
+    const [
+      year,
+      month,
+      day
+    ] =
+      String(date)
+        .split("-");
+
+    const formatted =
+      `${day}/${month}`;
+
+    if (time) {
+      return (
+        `${formatted} • ${time}`
+      );
+    }
+
+    return formatted;
+
+  } catch {
+    return (
+      time ||
+      "Data a definir"
     );
-
-  return (
-    country.includes("brasil") &&
-    (
-      league.includes("serie a") ||
-      league.includes("brasileirao") ||
-      league.includes(
-        "campeonato brasileiro"
-      )
-    )
-  );
+  }
 }
 
 
 /* =========================================================
-   CARD SIMPLES DA SÉRIE A
+   ESCUDO
 ========================================================= */
 
-function serieAGameCard(game) {
-  const homeScore =
-    scoreValue(game.hs);
-
-  const awayScore =
-    scoreValue(game.as);
-
-  let status =
-    game.start;
-
-  if (isLive(game)) {
-    status =
-      getGameClock(game);
+function serieATeamLogo(
+  badge,
+  team
+) {
+  if (!badge) {
+    return `
+      <span
+        class="team-logo-fallback"
+      >
+        ${escapeHtml(
+          String(team || "?")
+            .charAt(0)
+        )}
+      </span>
+    `;
   }
 
-  if (game.status === "FT") {
-    status =
-      "ENCERRADO";
+  return `
+    <img
+      class="team-logo"
+      src="${escapeHtml(badge)}"
+      alt="${escapeHtml(team)}"
+      loading="lazy"
+      onerror="
+        this.style.display='none';
+        this.nextElementSibling.style.display='grid';
+      "
+    >
+
+    <span
+      class="team-logo-fallback"
+      style="display:none"
+    >
+      ${escapeHtml(
+        String(team || "?")
+          .charAt(0)
+      )}
+    </span>
+  `;
+}
+
+
+/* =========================================================
+   CARD DE JOGO
+========================================================= */
+
+function serieAGameCard(
+  game
+) {
+  const finished =
+    game.status ===
+      "finished" ||
+    game.statusCode ===
+      "ENCERRADA";
+
+  const scheduled =
+    game.status ===
+      "scheduled";
+
+  const homeScore =
+    game.score?.home;
+
+  const awayScore =
+    game.score?.away;
+
+  let statusText =
+    formatSerieADate(
+      game.date,
+      game.time
+    );
+
+  if (finished) {
+    statusText =
+      `ENCERRADO • ${
+        formatSerieADate(
+          game.date,
+          game.time
+        )
+      }`;
+  }
+
+  if (
+    scheduled &&
+    !game.date
+  ) {
+    statusText =
+      "DATA A DEFINIR";
   }
 
   return `
     <div class="match-card">
 
       <div class="match-time">
-        ${escapeHtml(status)}
+        ${escapeHtml(
+          statusText
+        )}
       </div>
 
       <div class="teams">
 
         <div class="team">
 
-          ${
-            game.homeLogo
-              ? `
-                <img
-                  class="team-logo"
-                  src="${escapeHtml(
-                    game.homeLogo
-                  )}"
-                  alt=""
-                />
-              `
-              : `
-                <div class="team-logo-fallback">
-                  ⚽
-                </div>
-              `
-          }
+          ${serieATeamLogo(
+            game.home?.badge,
+            game.home?.name
+          )}
 
           <span class="team-name">
-            ${escapeHtml(game.home)}
+            ${escapeHtml(
+              game.home?.name ||
+              "Mandante"
+            )}
           </span>
 
         </div>
@@ -3896,26 +3968,16 @@ function serieAGameCard(game) {
 
         <div class="team">
 
-          ${
-            game.awayLogo
-              ? `
-                <img
-                  class="team-logo"
-                  src="${escapeHtml(
-                    game.awayLogo
-                  )}"
-                  alt=""
-                />
-              `
-              : `
-                <div class="team-logo-fallback">
-                  ⚽
-                </div>
-              `
-          }
+          ${serieATeamLogo(
+            game.away?.badge,
+            game.away?.name
+          )}
 
           <span class="team-name">
-            ${escapeHtml(game.away)}
+            ${escapeHtml(
+              game.away?.name ||
+              "Visitante"
+            )}
           </span>
 
         </div>
@@ -3926,14 +3988,43 @@ function serieAGameCard(game) {
       <div class="score">
 
         <span>
-          ${homeScore}
+          ${
+            homeScore === null ||
+            homeScore === undefined
+              ? "-"
+              : homeScore
+          }
         </span>
 
         <span>
-          ${awayScore}
+          ${
+            awayScore === null ||
+            awayScore === undefined
+              ? "-"
+              : awayScore
+          }
         </span>
 
       </div>
+
+      ${
+        game.venue
+          ? `
+            <div
+              style="
+                grid-column:1/-1;
+                padding:0 10px 9px;
+                font-size:10px;
+                color:#7f8b83;
+              "
+            >
+              📍 ${escapeHtml(
+                game.venue
+              )}
+            </div>
+          `
+          : ""
+      }
 
     </div>
   `;
@@ -3941,7 +4032,7 @@ function serieAGameCard(game) {
 
 
 /* =========================================================
-   RENDER SÉRIE A
+   RENDER DOS JOGOS
 ========================================================= */
 
 function renderSerieA() {
@@ -3960,100 +4051,313 @@ function renderSerieA() {
       "serieAResultadosJogos"
     );
 
-  const tabela =
-    document.getElementById(
-      "serieATabela"
-    );
-
-  const jogos =
-    state.games.filter(
-      isSerieAGame
-    );
-
-
-  /* RODADA */
-
-  if (rodada) {
-    rodada.innerHTML =
-      jogos.length
-        ? jogos
-            .map(
-              serieAGameCard
-            )
-            .join("")
-        : `
-          <div class="empty-state">
-            <strong>
-              Sem jogos da Série A hoje
-            </strong>
-
-            <span>
-              Nenhuma partida encontrada
-              para esta data.
-            </span>
-          </div>
-        `;
+  if (
+    !rodada &&
+    !proximos &&
+    !resultados
+  ) {
+    return;
   }
 
+  if (!serieAState.loaded) {
 
-  /* PRÓXIMOS */
+    if (rodada) {
+      rodada.innerHTML = `
+        <div class="empty-state">
+          <strong>
+            Carregando rodada...
+          </strong>
+        </div>
+      `;
+    }
+
+    if (proximos) {
+      proximos.innerHTML = `
+        <div class="empty-state">
+          <strong>
+            Carregando próximos jogos...
+          </strong>
+        </div>
+      `;
+    }
+
+    if (resultados) {
+      resultados.innerHTML = `
+        <div class="empty-state">
+          <strong>
+            Carregando resultados...
+          </strong>
+        </div>
+      `;
+    }
+
+    return;
+  }
+
+  const jogos =
+    serieAState.matches || [];
 
   const proximosJogos =
     jogos.filter(
       game =>
-        game.status === "NS"
+        game.status ===
+        "scheduled"
     );
-
-  if (proximos) {
-    proximos.innerHTML =
-      proximosJogos.length
-        ? proximosJogos
-            .map(
-              serieAGameCard
-            )
-            .join("")
-        : `
-          <div class="empty-state">
-            <strong>
-              Nenhum próximo jogo hoje
-            </strong>
-          </div>
-        `;
-  }
-
-
-  /* RESULTADOS */
 
   const encerrados =
     jogos.filter(
       game =>
-        game.status === "FT"
+        game.status ===
+          "finished" ||
+        game.statusCode ===
+          "ENCERRADA"
     );
 
-  if (resultados) {
-    resultados.innerHTML =
-      encerrados.length
-        ? encerrados
-            .map(
-              serieAGameCard
+
+  /* =======================================================
+     RODADA COMPLETA
+  ======================================================= */
+
+  if (rodada) {
+
+    if (!jogos.length) {
+      rodada.innerHTML = `
+        <div class="empty-state">
+
+          <strong>
+            Rodada indisponível
+          </strong>
+
+          <span>
+            Nenhuma partida encontrada.
+          </span>
+
+        </div>
+      `;
+
+    } else {
+      rodada.innerHTML = `
+
+        <div
+          style="
+            padding:10px 12px;
+            margin-bottom:8px;
+            border-radius:10px;
+            background:rgba(0,230,118,0.07);
+            color:#00e676;
+            font-size:11px;
+            font-weight:900;
+          "
+        >
+          ${
+            escapeHtml(
+              serieAState
+                .round
+                ?.label ||
+              (
+                serieAState
+                  .round
+                  ?.number
+                  ? `${serieAState.round.number}ª rodada`
+                  : "Rodada atual"
+              )
             )
-            .join("")
-        : `
-          <div class="empty-state">
-            <strong>
-              Nenhum resultado hoje
-            </strong>
-          </div>
-        `;
+          }
+        </div>
+
+        ${jogos
+          .map(
+            serieAGameCard
+          )
+          .join("")
+        }
+      `;
+    }
+  }
+
+
+  /* =======================================================
+     PRÓXIMOS
+  ======================================================= */
+
+  if (proximos) {
+
+    if (!proximosJogos.length) {
+      proximos.innerHTML = `
+        <div class="empty-state">
+
+          <strong>
+            Nenhum jogo pendente
+          </strong>
+
+          <span>
+            Todos os jogos desta rodada
+            já foram encerrados.
+          </span>
+
+        </div>
+      `;
+
+    } else {
+      proximos.innerHTML =
+        proximosJogos
+          .map(
+            serieAGameCard
+          )
+          .join("");
+    }
+  }
+
+
+  /* =======================================================
+     RESULTADOS
+  ======================================================= */
+
+  if (resultados) {
+
+    if (!encerrados.length) {
+      resultados.innerHTML = `
+        <div class="empty-state">
+
+          <strong>
+            Nenhum resultado
+          </strong>
+
+          <span>
+            A rodada ainda não possui
+            partidas encerradas.
+          </span>
+
+        </div>
+      `;
+
+    } else {
+      resultados.innerHTML =
+        encerrados
+          .map(
+            serieAGameCard
+          )
+          .join("");
+    }
   }
 }
 
-    /* =========================================================
-   BRASILEIRÃO SÉRIE A - CLASSIFICAÇÃO REAL
+
+/* =========================================================
+   CARREGAR RODADA REAL
 ========================================================= */
 
-const M_ESPORTES_API =
-  "https://m-esportes-api.onrender.com";
+async function loadSerieARound() {
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () =>
+        controller.abort(),
+      10000
+    );
+
+  try {
+    const response =
+      await fetch(
+        `${M_ESPORTES_API}/api/serie-a/rodada`,
+        {
+          cache: "no-store",
+          signal:
+            controller.signal
+        }
+      );
+
+    clearTimeout(
+      timeout
+    );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      data.ok === false
+    ) {
+      throw new Error(
+        data.details ||
+        data.error ||
+        `Erro ${response.status}`
+      );
+    }
+
+    serieAState.matches =
+      Array.isArray(
+        data.matches
+      )
+        ? data.matches
+        : [];
+
+    serieAState.round =
+      data.round ||
+      null;
+
+    serieAState.loaded =
+      true;
+
+    renderSerieA();
+
+  } catch (error) {
+
+    clearTimeout(
+      timeout
+    );
+
+    console.error(
+      "Rodada Série A:",
+      error
+    );
+
+    serieAState.matches =
+      [];
+
+    serieAState.loaded =
+      true;
+
+    renderSerieA();
+
+    const rodada =
+      document.getElementById(
+        "serieAJogosRodada"
+      );
+
+    if (rodada) {
+      rodada.innerHTML = `
+        <div class="empty-state">
+
+          <strong>
+            Não foi possível carregar
+            a rodada
+          </strong>
+
+          <span>
+            ${
+              error.name ===
+              "AbortError"
+                ? "O servidor demorou demais para responder."
+                : escapeHtml(
+                    error.message ||
+                    "Erro desconhecido"
+                  )
+            }
+          </span>
+
+        </div>
+      `;
+    }
+  }
+}
+
+
+/* =========================================================
+   CLASSIFICAÇÃO
+========================================================= */
 
 async function loadSerieAStandings() {
   const tabela =
@@ -4073,8 +4377,9 @@ async function loadSerieAStandings() {
 
   const timeout =
     setTimeout(
-      () => controller.abort(),
-      8000
+      () =>
+        controller.abort(),
+      10000
     );
 
   try {
@@ -4088,7 +4393,9 @@ async function loadSerieAStandings() {
         }
       );
 
-    clearTimeout(timeout);
+    clearTimeout(
+      timeout
+    );
 
     const data =
       await response.json();
@@ -4132,33 +4439,19 @@ async function loadSerieAStandings() {
 
           <span>#</span>
 
-          <span>
-            Time
-          </span>
+          <span>Time</span>
 
-          <span>
-            J
-          </span>
+          <span>J</span>
 
-          <span>
-            V
-          </span>
+          <span>V</span>
 
-          <span>
-            E
-          </span>
+          <span>E</span>
 
-          <span>
-            D
-          </span>
+          <span>D</span>
 
-          <span>
-            SG
-          </span>
+          <span>SG</span>
 
-          <span>
-            PTS
-          </span>
+          <span>PTS</span>
 
         </div>
 
@@ -4278,14 +4571,9 @@ async function loadSerieAStandings() {
           .join("")
         }
 
-        <div
-          class="
-            standings-legend
-          "
-        >
+        <div class="standings-legend">
 
           <span>
-
             <i
               class="
                 legend-libertadores
@@ -4293,11 +4581,9 @@ async function loadSerieAStandings() {
             ></i>
 
             Libertadores
-
           </span>
 
           <span>
-
             <i
               class="
                 legend-preliberta
@@ -4305,11 +4591,9 @@ async function loadSerieAStandings() {
             ></i>
 
             Pré-Libertadores
-
           </span>
 
           <span>
-
             <i
               class="
                 legend-z4
@@ -4317,7 +4601,6 @@ async function loadSerieAStandings() {
             ></i>
 
             Z4
-
           </span>
 
         </div>
@@ -4355,279 +4638,36 @@ async function loadSerieAStandings() {
   }
 }
 
+
 /* =========================================================
-   CARREGAR CLASSIFICAÇÃO
+   INICIAR SÉRIE A
 ========================================================= */
+
+setupSerieATabs();
+
+renderSerieA();
 
 setTimeout(
   () => {
+    loadSerieARound();
+
     loadSerieAStandings();
   },
-  1500
+  1000
 );
 
-/* =========================================================
-   CLASSIFICAÇÃO SÉRIE A
-========================================================= */
-
-.standings-table {
-  width: 100%;
-
-  overflow: hidden;
-
-  background: #0d120f;
-
-  border: 1px solid
-    rgba(255,255,255,0.08);
-
-  border-radius: 14px;
-}
-
-
-/* CABEÇALHO */
-
-.standings-head,
-.standings-row {
-  display: grid;
-
-  grid-template-columns:
-    34px
-    minmax(0, 1fr)
-    32px
-    32px
-    32px
-    32px
-    38px
-    42px;
-
-  align-items: center;
-
-  gap: 4px;
-
-  padding:
-    0
-    8px;
-}
-
-
-.standings-head {
-  min-height: 38px;
-
-  color: #8e9b92;
-
-  font-size: 10px;
-
-  font-weight: 900;
-
-  border-bottom:
-    1px solid
-    rgba(255,255,255,0.08);
-
-  text-transform: uppercase;
-}
-
-
-/* LINHAS */
-
-.standings-row {
-  position: relative;
-
-  min-height: 44px;
-
-  font-size: 12px;
-
-  border-bottom:
-    1px solid
-    rgba(255,255,255,0.04);
-
-  border-left:
-    4px solid
-    transparent;
-}
-
-
-.standings-row:last-of-type {
-  border-bottom: 0;
-}
-
-
-.standings-row span,
-.standings-row strong {
-  text-align: center;
-}
-
-
-/* TIME */
-
-.standings-team {
-  min-width: 0;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-
-  text-align: left !important;
-
-  font-weight: 800;
-
-  color: #f1f5f2;
-}
-
-
-/* POSIÇÃO */
-
-.standings-position {
-  font-weight: 900;
-
-  color: #c5cec8;
-}
-
-
-/* PONTOS */
-
-.standings-row strong {
-  color: #ffffff;
-
-  font-size: 13px;
-
-  font-weight: 900;
-}
-
 
 /* =========================================================
-   LIBERTADORES
+   ATUALIZAR A SÉRIE A
+   A CADA 5 MINUTOS
 ========================================================= */
 
-.standings-row.zone-libertadores {
-  border-left-color:
-    #00e676;
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(0,230,118,0.10),
-      transparent 45%
-    );
-}
-
-
-.standings-row.zone-libertadores
-.standings-position {
-  color: #00e676;
-}
-
-
-/* =========================================================
-   PRÉ-LIBERTADORES
-========================================================= */
-
-.standings-row.zone-preliberta {
-  border-left-color:
-    #7cff9c;
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(124,255,156,0.07),
-      transparent 45%
-    );
-}
-
-
-.standings-row.zone-preliberta
-.standings-position {
-  color: #7cff9c;
-}
-
-
-/* =========================================================
-   Z4
-========================================================= */
-
-.standings-row.zone-z4 {
-  border-left-color:
-    #ff3b4f;
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255,59,79,0.10),
-      transparent 45%
-    );
-}
-
-
-.standings-row.zone-z4
-.standings-position {
-  color: #ff3b4f;
-}
-
-
-/* =========================================================
-   LEGENDA
-========================================================= */
-
-.standings-legend {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  align-items: center;
-
-  gap:
-    8px
-    14px;
-
-  padding: 12px;
-
-  border-top:
-    1px solid
-    rgba(255,255,255,0.08);
-
-  color: #a5afa8;
-
-  font-size: 10px;
-
-  font-weight: 700;
-}
-
-
-.standings-legend span {
-  display: flex;
-
-  align-items: center;
-
-  gap: 5px;
-}
-
-
-.standings-legend i {
-  display: inline-block;
-
-  width: 9px;
-
-  height: 9px;
-
-  border-radius: 50%;
-}
-
-
-.legend-libertadores {
-  background: #00e676;
-}
-
-
-.legend-preliberta {
-  background: #7cff9c;
-}
-
-
-.legend-z4 {
-  background: #ff3b4f;
-}
-
+setInterval(
+  () => {
+    loadSerieARound();
+  },
+  300000
+);
 
 /* =========================================================
    CELULAR
