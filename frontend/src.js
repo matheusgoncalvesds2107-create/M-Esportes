@@ -4048,7 +4048,7 @@ function renderSerieA() {
   }
 }
 
-/* =========================================================
+    /* =========================================================
    BRASILEIRÃO SÉRIE A - CLASSIFICAÇÃO REAL
 ========================================================= */
 
@@ -4080,7 +4080,7 @@ async function loadSerieAStandings() {
   try {
     const response =
       await fetch(
-        "https://m-esportes-api.onrender.com/api/serie-a/classificacao",
+        `${M_ESPORTES_API}/api/serie-a/classificacao`,
         {
           cache: "no-store",
           signal:
@@ -4110,6 +4110,7 @@ async function loadSerieAStandings() {
     if (!rows.length) {
       tabela.innerHTML = `
         <div class="empty-state">
+
           <strong>
             Classificação indisponível
           </strong>
@@ -4117,6 +4118,7 @@ async function loadSerieAStandings() {
           <span>
             Nenhum clube retornado.
           </span>
+
         </div>
       `;
 
@@ -4127,68 +4129,211 @@ async function loadSerieAStandings() {
       <div class="standings-table">
 
         <div class="standings-head">
+
           <span>#</span>
-          <span>Time</span>
-          <span>J</span>
-          <span>V</span>
-          <span>E</span>
-          <span>D</span>
-          <span>SG</span>
-          <span>PTS</span>
+
+          <span>
+            Time
+          </span>
+
+          <span>
+            J
+          </span>
+
+          <span>
+            V
+          </span>
+
+          <span>
+            E
+          </span>
+
+          <span>
+            D
+          </span>
+
+          <span>
+            SG
+          </span>
+
+          <span>
+            PTS
+          </span>
+
         </div>
 
-        ${rows.map(
-          row => `
-            <div class="standings-row">
+        ${rows
+          .map(
+            row => {
 
-              <span class="standings-position">
-                ${row.position ?? "-"}
-              </span>
+              const position =
+                Number(
+                  row.position
+                );
 
-              <span class="standings-team">
-                ${escapeHtml(
-                  row.shortName ||
-                  row.team ||
-                  "Time"
-                )}
-              </span>
+              let zoneClass =
+                "";
 
-              <span>
-                ${row.matches ?? 0}
-              </span>
+              if (
+                position >= 1 &&
+                position <= 4
+              ) {
+                zoneClass =
+                  "zone-libertadores";
+              }
 
-              <span>
-                ${row.wins ?? 0}
-              </span>
+              else if (
+                position >= 5 &&
+                position <= 6
+              ) {
+                zoneClass =
+                  "zone-preliberta";
+              }
 
-              <span>
-                ${row.draws ?? 0}
-              </span>
+              else if (
+                position >= 17
+              ) {
+                zoneClass =
+                  "zone-z4";
+              }
 
-              <span>
-                ${row.losses ?? 0}
-              </span>
+              return `
+                <div
+                  class="
+                    standings-row
+                    ${zoneClass}
+                  "
+                >
 
-              <span>
-                ${row.goalDifference ?? 0}
-              </span>
+                  <span
+                    class="
+                      standings-position
+                    "
+                  >
+                    ${
+                      row.position ??
+                      "-"
+                    }
+                  </span>
 
-              <strong>
-                ${row.points ?? 0}
-              </strong>
+                  <span
+                    class="
+                      standings-team
+                    "
+                  >
+                    ${escapeHtml(
+                      row.shortName ||
+                      row.team ||
+                      row.name ||
+                      "Time"
+                    )}
+                  </span>
 
-            </div>
-          `
-        ).join("")}
+                  <span>
+                    ${
+                      row.matches ??
+                      0
+                    }
+                  </span>
+
+                  <span>
+                    ${
+                      row.wins ??
+                      0
+                    }
+                  </span>
+
+                  <span>
+                    ${
+                      row.draws ??
+                      0
+                    }
+                  </span>
+
+                  <span>
+                    ${
+                      row.losses ??
+                      0
+                    }
+                  </span>
+
+                  <span>
+                    ${
+                      row.goalDifference ??
+                      0
+                    }
+                  </span>
+
+                  <strong>
+                    ${
+                      row.points ??
+                      0
+                    }
+                  </strong>
+
+                </div>
+              `;
+            }
+          )
+          .join("")
+        }
+
+        <div
+          class="
+            standings-legend
+          "
+        >
+
+          <span>
+
+            <i
+              class="
+                legend-libertadores
+              "
+            ></i>
+
+            Libertadores
+
+          </span>
+
+          <span>
+
+            <i
+              class="
+                legend-preliberta
+              "
+            ></i>
+
+            Pré-Libertadores
+
+          </span>
+
+          <span>
+
+            <i
+              class="
+                legend-z4
+              "
+            ></i>
+
+            Z4
+
+          </span>
+
+        </div>
 
       </div>
     `;
 
   } catch (error) {
-    clearTimeout(timeout);
+
+    clearTimeout(
+      timeout
+    );
 
     tabela.innerHTML = `
       <div class="empty-state">
+
         <strong>
           Não foi possível carregar
         </strong>
@@ -4204,13 +4349,343 @@ async function loadSerieAStandings() {
                 )
           }
         </span>
+
       </div>
     `;
   }
 }
+
+/* =========================================================
+   CARREGAR CLASSIFICAÇÃO
+========================================================= */
+
 setTimeout(
   () => {
     loadSerieAStandings();
   },
   1500
 );
+/* =========================================================
+   CLASSIFICAÇÃO SÉRIE A
+========================================================= */
+
+.standings-table {
+  width: 100%;
+
+  overflow: hidden;
+
+  background: #0d120f;
+
+  border: 1px solid
+    rgba(255,255,255,0.08);
+
+  border-radius: 14px;
+}
+
+
+/* CABEÇALHO */
+
+.standings-head,
+.standings-row {
+  display: grid;
+
+  grid-template-columns:
+    34px
+    minmax(0, 1fr)
+    32px
+    32px
+    32px
+    32px
+    38px
+    42px;
+
+  align-items: center;
+
+  gap: 4px;
+
+  padding:
+    0
+    8px;
+}
+
+
+.standings-head {
+  min-height: 38px;
+
+  color: #8e9b92;
+
+  font-size: 10px;
+
+  font-weight: 900;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,0.08);
+
+  text-transform: uppercase;
+}
+
+
+/* LINHAS */
+
+.standings-row {
+  position: relative;
+
+  min-height: 44px;
+
+  font-size: 12px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,0.04);
+
+  border-left:
+    4px solid
+    transparent;
+}
+
+
+.standings-row:last-of-type {
+  border-bottom: 0;
+}
+
+
+.standings-row span,
+.standings-row strong {
+  text-align: center;
+}
+
+
+/* TIME */
+
+.standings-team {
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  text-align: left !important;
+
+  font-weight: 800;
+
+  color: #f1f5f2;
+}
+
+
+/* POSIÇÃO */
+
+.standings-position {
+  font-weight: 900;
+
+  color: #c5cec8;
+}
+
+
+/* PONTOS */
+
+.standings-row strong {
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   LIBERTADORES
+========================================================= */
+
+.standings-row.zone-libertadores {
+  border-left-color:
+    #00e676;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,230,118,0.10),
+      transparent 45%
+    );
+}
+
+
+.standings-row.zone-libertadores
+.standings-position {
+  color: #00e676;
+}
+
+
+/* =========================================================
+   PRÉ-LIBERTADORES
+========================================================= */
+
+.standings-row.zone-preliberta {
+  border-left-color:
+    #7cff9c;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(124,255,156,0.07),
+      transparent 45%
+    );
+}
+
+
+.standings-row.zone-preliberta
+.standings-position {
+  color: #7cff9c;
+}
+
+
+/* =========================================================
+   Z4
+========================================================= */
+
+.standings-row.zone-z4 {
+  border-left-color:
+    #ff3b4f;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,59,79,0.10),
+      transparent 45%
+    );
+}
+
+
+.standings-row.zone-z4
+.standings-position {
+  color: #ff3b4f;
+}
+
+
+/* =========================================================
+   LEGENDA
+========================================================= */
+
+.standings-legend {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+
+  gap:
+    8px
+    14px;
+
+  padding: 12px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,0.08);
+
+  color: #a5afa8;
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+
+.standings-legend span {
+  display: flex;
+
+  align-items: center;
+
+  gap: 5px;
+}
+
+
+.standings-legend i {
+  display: inline-block;
+
+  width: 9px;
+
+  height: 9px;
+
+  border-radius: 50%;
+}
+
+
+.legend-libertadores {
+  background: #00e676;
+}
+
+
+.legend-preliberta {
+  background: #7cff9c;
+}
+
+
+.legend-z4 {
+  background: #ff3b4f;
+}
+
+
+/* =========================================================
+   CELULAR
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .standings-head,
+  .standings-row {
+    grid-template-columns:
+      30px
+      minmax(0, 1fr)
+      30px
+      38px
+      42px;
+
+    gap: 4px;
+  }
+
+
+  /*
+    No celular escondemos:
+    V, E e D
+
+    Fica:
+    # | TIME | J | SG | PTS
+  */
+
+  .standings-head
+  span:nth-child(4),
+
+  .standings-head
+  span:nth-child(5),
+
+  .standings-head
+  span:nth-child(6),
+
+  .standings-row
+  span:nth-child(4),
+
+  .standings-row
+  span:nth-child(5),
+
+  .standings-row
+  span:nth-child(6) {
+    display: none;
+  }
+
+
+  .standings-team {
+    font-size: 11px;
+  }
+
+
+  .standings-legend {
+    font-size: 9px;
+
+    gap:
+      7px
+      10px;
+  }
+     }
