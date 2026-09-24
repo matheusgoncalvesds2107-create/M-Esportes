@@ -2603,6 +2603,154 @@ app.get(
   }
 );
       
+/* =========================================================
+   BRASILEIRÃO SÉRIE A - RODADA ATUAL
+========================================================= */
+
+app.get(
+  "/api/serie-a/rodada",
+  async (req, res) => {
+    try {
+      const data =
+        await getRounds("a");
+
+      const round =
+        data?.rounds?.[0] ||
+        null;
+
+      const matches =
+        round?.matches ||
+        [];
+
+      const jogos =
+        matches.map(
+          match => ({
+            id:
+              match.id,
+
+            round:
+              match.round ??
+              round?.number ??
+              null,
+
+            date:
+              match.date ||
+              null,
+
+            time:
+              match.time ||
+              null,
+
+            dateTime:
+              match.dateTime ||
+              null,
+
+            status:
+              match.status ||
+              "scheduled",
+
+            statusCode:
+              match.statusCode ||
+              null,
+
+            venue:
+              match.venue ||
+              null,
+
+            home: {
+              id:
+                match.homeTeam?.id ||
+                null,
+
+              name:
+                match.homeTeam?.name ||
+                "Mandante",
+
+              shortName:
+                match.homeTeam?.shortName ||
+                null,
+
+              badge:
+                match.homeTeam?.badge ||
+                null
+            },
+
+            away: {
+              id:
+                match.awayTeam?.id ||
+                null,
+
+              name:
+                match.awayTeam?.name ||
+                "Visitante",
+
+              shortName:
+                match.awayTeam?.shortName ||
+                null,
+
+              badge:
+                match.awayTeam?.badge ||
+                null
+            },
+
+            score: {
+              home:
+                match.score?.home ??
+                null,
+
+              away:
+                match.score?.away ??
+                null
+            }
+          })
+        );
+
+      res.json({
+        ok: true,
+
+        competition:
+          data?.competition?.name ||
+          "Brasileirão Série A",
+
+        round: {
+          number:
+            round?.number ||
+            null,
+
+          total:
+            round?.total ||
+            null,
+
+          label:
+            round?.label ||
+            null
+        },
+
+        count:
+          jogos.length,
+
+        matches:
+          jogos
+      });
+
+    } catch (error) {
+      console.error(
+        "Rodada Série A:",
+        error
+      );
+
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error:
+            "Erro ao carregar rodada da Série A",
+          details:
+            error.message
+        });
+    }
+  }
+);
 
 /* =========================================================
    RAIZ
